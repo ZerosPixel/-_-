@@ -2,7 +2,6 @@
   БУНКЕР — простая фанатская веб-версия.
   Правила сверены с https://bunker-online.com/ru/rules (базовый пак).
   Здесь нет спецкарт, возвратов игроков и прочих сложных механик.
-  Связь игроков: PeerJS Cloud + WebRTC. Хост держит состояние комнаты в своем браузере.
 */
 
 const APP = document.getElementById('app');
@@ -103,14 +102,14 @@ const DECK = {
 };
 
 const CATASTROPHES = [
-  { title: 'Жёсткая ядерная зима', desc: 'После глобального обмена ударами поверхность Земли покрыта пылью и сажей. Холодно, света мало, выходы наружу опасны.', duration: 30, foodNeed: 1.25, heatNeed: 1.35, envNeed: 1.2 },
-  { title: 'Глобальное наводнение', desc: 'Огромные территории затоплены. Пресная вода доступна, но транспорт и производство разрушены.', duration: 24, foodNeed: 1.1, heatNeed: 0.85, envNeed: 1.35 },
-  { title: 'Долгая засуха', desc: 'Осадки почти исчезли. Главные ресурсы — вода, семена, знания об экономии и производстве пищи.', duration: 36, foodNeed: 1.4, heatNeed: 1.0, envNeed: 1.2 },
-  { title: 'Техногенный коллапс', desc: 'Энергосистема разрушена, связь нестабильна, вокруг много отказавшего оборудования.', duration: 26, foodNeed: 1.1, heatNeed: 1.2, envNeed: 1.15 },
-  { title: 'Глобальная эпидемия', desc: 'Снаружи сохраняется высокий риск заражения. Главная сила бункера — медицина, санитария и дисциплина.', duration: 20, foodNeed: 1.0, heatNeed: 0.9, envNeed: 1.0 },
-  { title: 'Падение крупного астероида', desc: 'Удар вызвал пожары, пыль и разрушения. Основные задачи — пережить ударную волну, наладить быт и запасы.', duration: 18, foodNeed: 1.15, heatNeed: 1.2, envNeed: 1.1 },
-  { title: 'Климатический срыв', desc: 'Чередуются сильные морозы, жара и шторма. Вне бункера среда быстро меняется.', duration: 28, foodNeed: 1.2, heatNeed: 1.2, envNeed: 1.3 },
-  { title: 'Пыльная буря на годы', desc: 'Почти постоянная пыль закрывает небо. Механизмы изнашиваются, воздух и вода требуют фильтрации.', duration: 32, foodNeed: 1.2, heatNeed: 1.1, envNeed: 1.25 }
+  { title: 'Жёсткая ядерная зима', image: 'assets/catastrophe-01-nuclear-winter.jpg', desc: 'После глобального обмена ударами поверхность Земли покрыта пылью и сажей. Холодно, света мало, выходы наружу опасны.', duration: 30, foodNeed: 1.25, heatNeed: 1.35, envNeed: 1.2 },
+  { title: 'Глобальное наводнение', image: 'assets/catastrophe-02-flood.jpg', desc: 'Огромные территории затоплены. Пресная вода доступна, но транспорт и производство разрушены.', duration: 24, foodNeed: 1.1, heatNeed: 0.85, envNeed: 1.35 },
+  { title: 'Долгая засуха', image: 'assets/catastrophe-03-drought.jpg', desc: 'Осадки почти исчезли. Главные ресурсы — вода, семена, знания об экономии и производстве пищи.', duration: 36, foodNeed: 1.4, heatNeed: 1.0, envNeed: 1.2 },
+  { title: 'Техногенный коллапс', image: 'assets/catastrophe-04-tech-collapse.jpg', desc: 'Энергосистема разрушена, связь нестабильна, вокруг много отказавшего оборудования.', duration: 26, foodNeed: 1.1, heatNeed: 1.2, envNeed: 1.15 },
+  { title: 'Глобальная эпидемия', image: 'assets/catastrophe-05-epidemic.jpg', desc: 'Снаружи сохраняется высокий риск заражения. Главная сила бункера — медицина, санитария и дисциплина.', duration: 20, foodNeed: 1.0, heatNeed: 0.9, envNeed: 1.0 },
+  { title: 'Падение крупного астероида', image: 'assets/catastrophe-06-asteroid.jpg', desc: 'Удар вызвал пожары, пыль и разрушения. Основные задачи — пережить ударную волну, наладить быт и запасы.', duration: 18, foodNeed: 1.15, heatNeed: 1.2, envNeed: 1.1 },
+  { title: 'Климатический срыв', image: 'assets/catastrophe-07-climate-shift.jpg', desc: 'Чередуются сильные морозы, жара и шторма. Вне бункера среда быстро меняется.', duration: 28, foodNeed: 1.2, heatNeed: 1.2, envNeed: 1.3 },
+  { title: 'Пыльная буря на годы', image: 'assets/catastrophe-08-dust-storm.jpg', desc: 'Почти постоянная пыль закрывает небо. Механизмы изнашиваются, воздух и вода требуют фильтрации.', duration: 32, foodNeed: 1.2, heatNeed: 1.1, envNeed: 1.25 }
 ];
 
 const BUNKERS = [
@@ -123,6 +122,8 @@ const BUNKERS = [
 ];
 
 const REVEAL_QUOTA = {
+  4: [3, 2, 2, 1],
+  5: [3, 2, 2, 1, 1],
   6: [3, 3, 2],
   7: [3, 2, 2, 1, 1], 8: [3, 2, 2, 1, 1],
   9: [3, 2, 1, 1, 1, 1], 10: [3, 2, 1, 1, 1, 1],
@@ -133,13 +134,15 @@ const REVEAL_QUOTA = {
 const state = {
   mode: 'start',
   isHost: false,
-  isLeader: false,
   peer: null,
   hostId: null,
   roomCode: null,
   myId: null,
   myPlayerId: null,
   myName: '',
+  clientId: null,
+  joinBusy: false,
+  connectionLost: false,
   connections: new Map(),
   pendingHost: null,
   game: null
@@ -171,10 +174,74 @@ function setBadge(text, ok = false) {
 function makeRoomCode() {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
 }
+
+const PLAYER_SYMBOLS = ['☄', '◈', '⚙', '✦', '◒', '⌁', '⚡', '✹', '◆', '⊙', '◇', '▣', '◌', '△', '✺'];
+
+function hashString(value) {
+  let hash = 2166136261;
+  for (const ch of String(value || '')) {
+    hash ^= ch.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function playerAvatar(p) {
+  const seed = p?.clientId || `slot-${p?.slot || 0}`;
+  return PLAYER_SYMBOLS[hashString(seed) % PLAYER_SYMBOLS.length];
+}
+
+function makeRoomTitle(cat, bunker) {
+  const title = cat?.title || '';
+  const energy = Number(bunker?.energy || 0);
+  const water = Number(bunker?.water || 0);
+
+  if (title === 'Техногенный коллапс') {
+    return energy < 70 ? 'Кромешная Тьма' : 'Последний Контур';
+  }
+  if (title === 'Жёсткая ядерная зима') {
+    return energy < 65 ? 'Ледяная Тишина' : 'Мёртвое Небо';
+  }
+  if (title === 'Глобальное наводнение') {
+    return water < 24 ? 'Последний Берег' : 'После Потопа';
+  }
+  if (title === 'Долгая засуха') {
+    return water < 30 ? 'Последняя Капля' : 'Долгая Жажда';
+  }
+  if (title === 'Глобальная эпидемия') return 'Последний Карантин';
+  if (title === 'Падение крупного астероида') return 'После Удара';
+  if (title === 'Климатический срыв') return 'Сломанный Климат';
+  if (title === 'Пыльная буря на годы') return 'Под Пылью';
+  return 'Последний Бункер';
+}
 function getRoomFromUrl() {
   const p = new URLSearchParams(location.search);
   return p.get('room');
 }
+function getPersistentClientId() {
+  try {
+    const key = 'bunker-lite-client-id';
+    let id = localStorage.getItem(key);
+    if (!id) {
+      id = (crypto?.randomUUID?.() || `client-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
+      localStorage.setItem(key, id);
+    }
+    return id;
+  } catch {
+    return `client-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+}
+state.clientId = getPersistentClientId();
+
+function rememberName(name) {
+  state.myName = String(name || '').trim().slice(0, 28);
+  try { localStorage.setItem('bunker-lite-name', state.myName); } catch {}
+}
+
+function savedName() {
+  try { return localStorage.getItem('bunker-lite-name') || ''; } catch { return ''; }
+}
+
 function playerById(id) { return state.game?.players?.find(p => p.id === id); }
 function activePlayers() { return (state.game?.players || []).filter(p => !p.eliminated); }
 function inBunkerPlayers() { return (state.game?.players || []).filter(p => p.bunkered); }
@@ -192,10 +259,16 @@ function makeCharacter() {
 }
 
 function makePlayers(names, hostPlayerId, total) {
-  const slots = Array.from({ length: total }, (_, idx) => names[idx] || `Игрок ${idx + 1}`);
-  return slots.map((name, idx) => ({
+  return Array.from({ length: total }, (_, idx) => {
+    const providedName = String(names[idx] || '').trim();
+    const slotName = providedName || `Игрок ${idx + 1}`;
+    return {
     id: `p${Date.now().toString(36)}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
-    name: name || `Игрок ${idx + 1}`,
+    slot: idx + 1,
+    name: slotName,
+    occupied: !!providedName,
+    clientId: null,
+    peerId: null,
     connected: hostPlayerId === idx,
     ready: false,
     eliminated: false,
@@ -208,7 +281,8 @@ function makePlayers(names, hostPlayerId, total) {
     vote: null,
     speechDone: false,
     hostPlayer: hostPlayerId === idx
-  }));
+    };
+  });
 }
 
 function bunkerSlots(total) {
@@ -898,15 +972,11 @@ function sanitizeForPeer(g, playerId) {
 
 function broadcast() {
   if (!state.isHost) return;
-  for (const [peerId] of state.connections) {
-    const conn = state.connections.get(peerId);
-    if (conn?.open) conn.send({ type: 'state', game: sanitizeForPeer(state.game, state.game.players.find(p=>p.connected && p.peerId===peerId)?.id || null) });
-  }
+  sendStateToAll();
 }
 
 function sendStateToAll() {
   if (!state.isHost) return;
-  // Per-connection state uses conn.metadata.playerId; fallback to room state.
   for (const conn of state.connections.values()) {
     if (!conn?.open) continue;
     const playerId = conn.metadata?.playerId || null;
@@ -920,27 +990,47 @@ function syncAndRender() {
 }
 
 function attachHostConnection(conn) {
+  state.connections.set(conn.peer, conn);
   conn.on('open', () => {
-    state.connections.set(conn.peer, conn);
     conn.send({ type: 'hello', roomCode: state.roomCode, game: sanitizeForPeer(state.game, null) });
     setBadge(`комната ${state.roomCode}`, true);
     render();
   });
   conn.on('data', msg => handleHostMessage(conn, msg));
-  conn.on('close', () => { state.connections.delete(conn.peer); if (state.game) render(); });
+  conn.on('close', () => {
+    state.connections.delete(conn.peer);
+    const playerId = conn.metadata?.playerId;
+    const p = playerId ? playerById(playerId) : null;
+    if (p && p.peerId === conn.peer) {
+      p.connected = false;
+      p.peerId = null;
+      state.game?.log?.push(`${p.name} потерял соединение.`);
+    }
+    if (state.game) syncAndRender();
+  });
   conn.on('error', e => console.warn(e));
 }
 
 function handleHostMessage(conn, msg) {
   if (!msg || typeof msg !== 'object') return;
+  if (msg.action === 'joinLobby') {
+    handleHostJoinLobby(conn, msg);
+    return;
+  }
+  if (msg.action === 'leaveRoom') {
+    disconnectPlayerConnection(conn);
+    return;
+  }
+  if (msg.action === 'kickPlayer') {
+    kickPlayer(msg.playerId);
+    return;
+  }
   if (msg.action === 'join') {
     const pid = state.game?.players.find(p => p.id === msg.playerId);
-    if (pid) {
+    if (pid && pid.peerId === conn.peer) {
       pid.connected = true;
       pid.ready = true;
-      pid.peerId = conn.peer;
       conn.metadata = { ...(conn.metadata || {}), playerId: pid.id };
-      state.game.log.push(`${pid.name} подключился.`);
       conn.send({ type:'state', game: sanitizeForPeer(state.game, pid.id) });
       syncAndRender();
     }
@@ -965,27 +1055,47 @@ function handleHostMessage(conn, msg) {
   }
 }
 
-function sendToHost(action) {
-  const conn = state.pendingHost;
-  if (conn?.open) conn.send(action);
+function disconnectPlayerConnection(conn) {
+  const playerId = conn?.metadata?.playerId;
+  const p = playerId ? playerById(playerId) : null;
+  if (p && p.peerId === conn.peer) {
+    p.connected = false;
+    p.peerId = null;
+  }
+  state.connections.delete(conn.peer);
+  try { conn.close(); } catch {}
+  if (state.game) syncAndRender();
 }
 
-function createHost(name, playerCount, leaderMode) {
+function closeClientPeer() {
+  try { state.pendingHost?.close(); } catch {}
+  try { state.peer?.destroy(); } catch {}
+  state.pendingHost = null;
+  state.peer = null;
+  state.myId = null;
+}
+
+function createHost(name) {
+  if (state.joinBusy) return;
+  state.joinBusy = true;
+  state.connectionLost = false;
   state.isHost = true;
-  state.isLeader = leaderMode;
   state.roomCode = makeRoomCode();
   state.hostId = `bunker-${state.roomCode}`;
-  state.myName = name.trim() || 'Ведущий';
-  const peer = new Peer(state.hostId);
+  rememberName(name);
+  const peer = new Peer(state.hostId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } });
   state.peer = peer;
   setBadge('создаём комнату…');
   peer.on('open', () => {
-    const playerNames = leaderMode ? [] : [state.myName];
-    state.game = createGame({ playerCount, leaderMode }, playerNames, leaderMode ? null : 0);
-    state.game.capacity = bunkerSlots(playerCount);
-    if (leaderMode) state.game.players.forEach(p => { p.connected = false; });
+    state.joinBusy = false;
+    const playerNames = [state.myName];
+    state.game = createGame({ playerCount: 15 }, playerNames, 0);
+    state.game.capacity = bunkerSlots(15);
+    state.game.roomTitle = makeRoomTitle(state.game.catastrophe, state.game.bunker);
     state.game.players.forEach(p => p.ready = true);
-    state.myPlayerId = leaderMode ? null : state.game.players[0].id;
+    state.game.players[0].clientId = state.clientId;
+    state.game.players[0].peerId = peer.id;
+    state.myPlayerId = state.game.players[0].id;
     state.mode = 'lobby';
     const url = new URL(location.href);
     url.search = `?room=${encodeURIComponent(state.roomCode)}`;
@@ -997,45 +1107,79 @@ function createHost(name, playerCount, leaderMode) {
   peer.on('connection', attachHostConnection);
   peer.on('error', err => {
     console.error(err);
+    state.joinBusy = false;
     setBadge('ошибка подключения');
-    toast('Не удалось создать комнату. Обновите страницу.');
+    toast(err?.type === 'unavailable-id' ? 'Код комнаты уже занят. Попробуйте создать комнату ещё раз.' : 'Не удалось создать комнату. Проверьте соединение.');
+    render();
   });
+  peer.on('disconnected', () => setBadge('сервер связи отключён'));
 }
 
 function joinRoom(roomCode, name) {
-  const hostId = `bunker-${roomCode}`;
+  if (!roomCode || state.joinBusy) return;
+  state.joinBusy = true;
+  state.connectionLost = false;
   state.isHost = false;
-  state.hostId = hostId;
-  state.roomCode = roomCode;
-  state.myName = name.trim();
+  state.hostId = `bunker-${String(roomCode).trim().toUpperCase()}`;
+  state.roomCode = String(roomCode).trim().toUpperCase();
+  rememberName(name);
   state.mode = 'joining';
-  setBadge(`подключение к ${roomCode}…`);
-  const peer = new Peer();
+  setBadge(`подключение к ${state.roomCode}…`);
+  render();
+  closeClientPeer();
+
+  const peer = new Peer(undefined, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } });
   state.peer = peer;
+  const joinTimeout = setTimeout(() => {
+    if (state.joinBusy) {
+      state.joinBusy = false;
+      setBadge('нет ответа от комнаты');
+      toast('Комната не отвечает. Проверьте интернет и повторите подключение.');
+      render();
+    }
+  }, 15000);
+
   peer.on('open', myId => {
     state.myId = myId;
-    const conn = peer.connect(hostId, { reliable: true });
+    const conn = peer.connect(state.hostId, { reliable: true, serialization: 'json' });
     state.pendingHost = conn;
     conn.on('open', () => {
-      setBadge(`комната ${roomCode}`, true);
+      clearTimeout(joinTimeout);
+      state.joinBusy = false;
+      state.connectionLost = false;
+      setBadge(`комната ${state.roomCode}`, true);
+      conn.send({ action:'joinLobby', name: state.myName, peerId: myId, clientId: state.clientId });
       render();
-      // A blank join request lets the host show lobby. The player slot is assigned by name.
-      conn.send({ action:'joinLobby', name: state.myName, peerId: myId });
     });
     conn.on('data', msg => handleClientMessage(msg));
-    conn.on('close', () => { setBadge('хост отключился'); toast('Хост закрыл комнату.'); });
-    conn.on('error', err => { console.error(err); toast('Ошибка связи с комнатой.'); });
+    conn.on('close', () => {
+      if (state.mode === 'kicked') return;
+      state.connectionLost = true;
+      state.joinBusy = false;
+      state.pendingHost = null;
+      setBadge('нет связи с комнатой');
+      toast('Связь с хостом потеряна. Можно переподключиться.');
+      render();
+    });
+    conn.on('error', err => { console.error(err); });
   });
-  peer.on('error', err => { console.error(err); setBadge('ошибка связи'); toast('Не удалось подключиться. Проверьте ссылку.'); });
+  peer.on('error', err => {
+    clearTimeout(joinTimeout);
+    console.error(err);
+    state.joinBusy = false;
+    setBadge('ошибка связи');
+    toast(err?.type === 'peer-unavailable' ? 'Комната не найдена. Проверьте ссылку.' : 'Не удалось подключиться. Попробуйте ещё раз.');
+    render();
+  });
 }
 
 function handleClientMessage(msg) {
   if (!msg || typeof msg !== 'object') return;
   if (msg.type === 'hello') {
-    // Old state is only temporary; after lobby assignment, host sends the real state.
     state.game = msg.game;
+    state.mode = 'joining';
     render();
-    if (state.pendingHost) state.pendingHost.send({ action:'joinLobby', name: state.myName, peerId: state.myId });
+    if (state.pendingHost) state.pendingHost.send({ action:'joinLobby', name: state.myName, peerId: state.myId, clientId: state.clientId });
     return;
   }
   if (msg.type === 'assigned') {
@@ -1043,122 +1187,215 @@ function handleClientMessage(msg) {
     if (state.pendingHost) state.pendingHost.send({ action:'join', playerId: msg.playerId });
     return;
   }
+  if (msg.type === 'error') {
+    state.joinBusy = false;
+    setBadge('ошибка комнаты');
+    toast(msg.message || 'Комната отклонила подключение.');
+    render();
+    return;
+  }
+  if (msg.type === 'kicked') {
+    state.mode = 'kicked';
+    state.connectionLost = false;
+    state.joinBusy = false;
+    state.game = null;
+    try { state.pendingHost?.close(); } catch {}
+    try { state.peer?.destroy(); } catch {}
+    state.pendingHost = null;
+    state.peer = null;
+    setBadge('удалён из комнаты');
+    render();
+    toast('Хост удалил вас из комнаты.');
+    return;
+  }
   if (msg.type === 'state') {
     state.game = msg.game;
-    state.mode = state.game.status === 'finished' ? 'game' : 'game';
+    state.mode = 'game';
+    state.joinBusy = false;
+    state.connectionLost = false;
+    setBadge(`комната ${state.roomCode}`, true);
     render();
   }
 }
 
 function handleHostJoinLobby(conn, msg) {
   if (!state.isHost || !state.game || msg?.action !== 'joinLobby') return false;
-  const free = state.game.players.find(p => !p.connected && !p.hostPlayer && p.name === msg.name) ||
-               state.game.players.find(p => !p.connected && !p.hostPlayer);
-  if (!free) {
-    conn.send({ type:'error', message:'Мест больше нет.' });
+  const clientId = String(msg.clientId || '').trim();
+  let target = clientId ? state.game.players.find(p => p.clientId === clientId) : null;
+
+  // Reconnect / duplicate click protection: the same browser gets the same slot.
+  if (target) {
+    if (target.peerId && target.peerId !== conn.peer) {
+      const old = state.connections.get(target.peerId);
+      state.connections.delete(target.peerId);
+      try { old?.close(); } catch {}
+    }
+  } else {
+    if (state.game.status !== 'lobby') {
+      conn.send({ type:'error', message:'Игра уже началась. Новое место занять нельзя.' });
+      try { conn.close(); } catch {}
+      return true;
+    }
+    target = state.game.players.find(p => !p.connected && !p.occupied && !p.hostPlayer);
+  }
+
+  if (!target) {
+    conn.send({ type:'error', message:'Все места заняты. Хост может удалить лишнего игрока из лобби.' });
+    try { conn.close(); } catch {}
     return true;
   }
-  free.name = msg.name || free.name;
-  free.peerId = conn.peer;
-  free.connected = true;
-  conn.metadata = { playerId: free.id };
-  conn.send({ type:'assigned', playerId: free.id });
-  conn.send({ type:'state', game: sanitizeForPeer(state.game, free.id) });
+
+  target.name = msg.name || target.name;
+  target.occupied = true;
+  target.clientId = clientId || target.clientId || null;
+  target.peerId = conn.peer;
+  target.connected = true;
+  target.ready = true;
+  conn.metadata = { ...(conn.metadata || {}), playerId: target.id, clientId: target.clientId };
   state.connections.set(conn.peer, conn);
-  state.game.log.push(`${free.name} вошёл в комнату.`);
+  conn.send({ type:'assigned', playerId: target.id });
+  conn.send({ type:'state', game: sanitizeForPeer(state.game, target.id) });
+  if (!state.game.log.some(x => x === `${target.name} вошёл в комнату.`)) state.game.log.push(`${target.name} вошёл в комнату.`);
   syncAndRender();
   return true;
 }
 
-// Patch host message handler to support lobby join before game actions.
-const originalHostMessage = handleHostMessage;
-handleHostMessage = function(conn, msg) {
-  if (handleHostJoinLobby(conn, msg)) return;
-  originalHostMessage(conn, msg);
-};
+function kickPlayer(playerId) {
+  if (!state.isHost || !state.game || state.game.status !== 'lobby') return;
+  const p = playerById(playerId);
+  if (!p || p.hostPlayer) return toast('Создателя комнаты удалить нельзя.');
+  const conn = p.peerId ? state.connections.get(p.peerId) : null;
+  if (conn?.open) {
+    try { conn.send({ type:'kicked', message:'Хост удалил вас из комнаты.' }); } catch {}
+  }
+  if (p.peerId) state.connections.delete(p.peerId);
+  try { conn?.close(); } catch {}
+  const slotName = `Игрок ${p.slot}`;
+  p.name = slotName;
+  p.occupied = false;
+  p.clientId = null;
+  p.peerId = null;
+  p.connected = false;
+  p.ready = false;
+  p.eliminated = false;
+  p.bunkered = false;
+  p.revealed = [];
+  p.cards = makeCharacter();
+  p.lastRevealRound = -1;
+  p.revealsThisRound = 0;
+  p.vote = null;
+  p.speechDone = false;
+  state.game.log.push(`Хост освободил слот ${p.slot}.`);
+  syncAndRender();
+  toast('Игрок удалён из комнаты.');
+}
+
+function reconnectToRoom() {
+  if (!state.roomCode || !state.myName) return toast('Не найдено имя игрока.');
+  joinRoom(state.roomCode, state.myName);
+}
 
 function buildSetupHtml() {
   const room = getRoomFromUrl();
+  const nameValue = esc(state.myName || savedName());
+  const isJoin = !!room;
+  const joinStatus = state.mode === 'kicked'
+    ? `<div class="notice danger"><strong>Вы были удалены из комнаты.</strong><div class="small">Можно вернуться по той же ссылке, когда хост освободит место.</div></div>`
+    : state.connectionLost
+      ? `<div class="notice danger"><strong>Связь потеряна.</strong><div class="row" style="margin-top:10px"><button class="btn primary" onclick="uiReconnect()">Переподключиться</button></div></div>`
+      : '';
   return `
-    <section class="hero">
-      <div class="phase">простая браузерная версия</div>
-      <h1>БУНКЕР</h1>
-      <p>6–15 игроков. Сначала получаете случайного персонажа, затем по раундам открываете выбранные характеристики, обсуждаете состав и голосуете, кто останется снаружи.</p>
-    </section>
-    <div style="height:14px"></div>
-    ${room ? `
-      <section class="panel">
-        <h2>Войти в комнату ${esc(room)}</h2>
-        <div class="grid two">
-          <div>
-            <label>Ваше имя</label>
-            <input id="joinName" placeholder="Например, Ахмад" maxlength="28" />
-          </div>
-          <div style="display:flex;align-items:end">
-            <button class="btn primary" style="width:100%" onclick="uiJoin()">Войти</button>
-          </div>
-        </div>
-        <p class="small" style="margin-top:12px">Ссылка комнаты уже содержит код. Просто отправьте её друзьям.</p>
-      </section>
-      <div style="height:14px"></div>
-    ` : ''}
-    <section class="panel">
-      <div class="grid two">
-        <div>
-          <h2>Создать игру</h2>
-          <label>Ваше имя</label>
-          <input id="hostName" placeholder="Например, Али" maxlength="28" />
-          <div style="height:10px"></div>
-          <label>Количество игроков</label>
-          <select id="playerCount">
-            ${Array.from({length:10}, (_,i)=>i+6).map(n => `<option value="${n}">${n}</option>`).join('')}
-          </select>
-          <div style="height:10px"></div>
-          <label>Формат</label>
-          <select id="leaderMode">
-            <option value="false">Без отдельного ведущего</option>
-            <option value="true">С ведущим (создатель не играет)</option>
-          </select>
-          <div style="height:14px"></div>
-          <button class="btn primary" onclick="uiCreate()">Создать комнату</button>
-        </div>
-        <div class="notice">
-          <strong>Что здесь работает</strong>
-          <p class="small" style="margin:8px 0 0">Выбор характеристики для открытия, обязательная профессия в 1-м раунде, 2 минуты общего обсуждения, 30 секунд речей, 2 минуты живого голосования, 70% порог, оправдание и повторное голосование, пропуск первого голосования и два исключения в следующем раунде.</p>
-        </div>
+    <section class="hero hero-home">
+      <div class="eyebrow"><span class="status-pip"></span> браузерная игра · 4–15 игроков</div>
+      <div class="hero-copy">
+        <h1>БУНКЕР</h1>
+        <p>Соберите компанию, переживите катастрофу и докажите, почему именно ваш персонаж должен попасть внутрь.</p>
       </div>
     </section>
-  `;
-}
-
-function renderLobby() {
-  const g = state.game;
-  const connected = g.players.filter(p => p.connected).length;
-  const required = g.settings.playerCount;
-  APP.innerHTML = `
-    <div class="tabs"><div class="tab active">Лобби</div><div class="tab">${connected}/${required}</div></div>
-    <div class="grid two">
-      <section class="panel">
-        <div class="row space"><h2>Комната ${esc(state.roomCode)}</h2><button class="btn" onclick="copyRoomLink()">Скопировать ссылку</button></div>
-        <p class="small">Попросите друзей открыть эту ссылку. Нажмите «Начать», когда все на месте.</p>
-        <div class="notice" style="margin:12px 0">Мест в бункере: <strong>${g.capacity}</strong> из ${required} игроков.</div>
-        <div class="player-list">
-          ${g.players.map((p,i)=>`<div class="player"><div class="dot ${p.connected?'on':''}"></div><div><strong>${esc(p.name)}</strong><div class="small">${p.hostPlayer?'создатель':''}</div></div><div class="small">${p.connected?'в сети':'ожидает'}</div></div>`).join('')}
+    <div class="setup-grid">
+      ${isJoin ? `
+      <section class="panel setup-card join-card">
+        <div class="panel-kicker">Вы приглашены</div>
+        <h2>Войти в комнату</h2>
+        <div class="room-code-large">${esc(room)}</div>
+        <label for="joinName">Ваше имя</label>
+        <input id="joinName" value="${nameValue}" placeholder="Например, Мухаммад" maxlength="28" autocomplete="nickname" enterkeyhint="go" />
+        <button class="btn primary btn-lg full" ${state.joinBusy ? 'disabled' : ''} onclick="uiJoin()">${state.joinBusy ? 'Подключаемся…' : 'Войти в комнату'}</button>
+        ${joinStatus}
+      </section>` : `
+      <section class="panel setup-card create-card">
+        <div class="panel-kicker">Новая партия</div>
+        <h2>Создать комнату</h2>
+        <label for="hostName">Ваше имя</label>
+        <input id="hostName" value="${nameValue}" placeholder="Например, Али" maxlength="28" autocomplete="nickname" />
+        <button class="btn primary btn-lg full" ${state.joinBusy ? 'disabled' : ''} onclick="uiCreate()">${state.joinBusy ? 'Создаём…' : 'Создать комнату'}</button>
+        <div class="feature-list">
+          <div><span>01</span><strong>4–15 участников</strong><small>игру можно начать сразу, когда собрались минимум четверо</small></div>
+          <div><span>02</span><strong>Случайный сценарий</strong><small>катастрофа, бункер и характеристики подбираются автоматически</small></div>
+          <div><span>03</span><strong>Все играют</strong><small>каждый участник получает своего персонажа и участвует в голосовании</small></div>
         </div>
-      </section>
-      <section class="panel">
-        <h3>Как будет идти партия</h3>
-        <div class="metric"><span>Катастрофа</span><strong>случайно</strong></div>
-        <div class="metric"><span>Бункер</span><strong>случайно</strong></div>
-        <div class="metric"><span>Карты персонажа</span><strong>11</strong></div>
-        <div class="metric"><span>Спецусловия</span><strong>нет</strong></div>
-        <div style="height:14px"></div>
-        ${state.isHost ? `<button class="btn primary" style="width:100%" ${connected < required ? 'disabled':''} onclick="uiStartGame()">Начать игру</button>` : '<div class="notice">Ждём, пока создатель запустит игру.</div>'}
+      </section>`}
+
+      <section class="panel rules-preview">
+        <div class="panel-kicker">Короткие правила</div>
+        <h2>Выберите, кто останется в бункере</h2>
+        <p class="muted">Игроки по очереди раскрывают характеристики, обсуждают пользу каждого персонажа и голосуют. Цель — собрать самый устойчивый состав для выбранной катастрофы.</p>
+        <div class="mini-flow" aria-label="Этапы игры">
+          <div class="mini-step"><b>1</b><span>Лобби</span></div>
+          <div class="mini-flow-line"></div>
+          <div class="mini-step"><b>2</b><span>Ходы</span></div>
+          <div class="mini-flow-line"></div>
+          <div class="mini-step"><b>3</b><span>Обсуждение</span></div>
+          <div class="mini-flow-line"></div>
+          <div class="mini-step"><b>4</b><span>Голосование</span></div>
+          <div class="mini-flow-line"></div>
+          <div class="mini-step"><b>5</b><span>Финал</span></div>
+        </div>
+        <div class="rules-list">
+          <div><strong>Катастрофа и бункер</strong><span>задают, какие качества особенно важны.</span></div>
+          <div><strong>Раскрытие</strong><span>каждый показывает только нужное количество характеристик в свой ход.</span></div>
+          <div><strong>Выбор состава</strong><span>после обсуждения игроки исключают тех, кто кажется менее полезным.</span></div>
+        </div>
       </section>
     </div>
   `;
 }
-
+function renderLobby() {
+  const g = state.game;
+  if (!g.roomTitle) g.roomTitle = makeRoomTitle(g.catastrophe, g.bunker);
+  const connected = g.players.filter(p => p.connected).length;
+  const minPlayers = 4;
+  const lobbyBunkerCapacity = bunkerSlots(Math.max(minPlayers, connected));
+  const maxPlayers = 15;
+  const connectionNotice = state.connectionLost ? `<div class="notice danger" style="margin-bottom:14px"><strong>Связь потеряна.</strong> <button class="btn" onclick="uiReconnect()">Переподключиться</button></div>` : '';
+  APP.innerHTML = `
+    <div class="game-head compact-head">
+      <div><div class="eyebrow"><span class="status-pip"></span> ожидание игроков</div><h1>${esc(g.roomTitle)}</h1><div class="small">Комната ${esc(state.roomCode)}</div></div>
+      <div class="room-share"><div><small>Участники</small><strong>${connected}/${maxPlayers}</strong></div><button class="btn" onclick="copyRoomLink()">Скопировать ссылку</button></div>
+    </div>
+    ${connectionNotice}
+    <div class="lobby-grid">
+      <section class="panel lobby-panel">
+        <div class="panel-title-row"><div><div class="panel-kicker">Участники</div><h2>Кто уже внутри</h2></div><div class="capacity-badge">В бункере: ${lobbyBunkerCapacity} мест</div></div>
+        <div class="player-list lobby-list">
+          ${g.players.map(p=>`<div class="player lobby-player ${!p.occupied ? 'empty-slot' : ''}">
+            <div class="avatar">${p.occupied ? playerAvatar(p) : '·'}</div>
+            <div><strong>${p.occupied ? esc(p.name) : `Свободное место ${p.slot}`}</strong><div class="small">${p.hostPlayer?'создатель комнаты':p.connected?'в сети':'ожидает подключения'}</div></div>
+            <div class="lobby-actions">${p.connected ? `<span class="online-pill"><span></span>онлайн</span>` : `<span class="small">${p.occupied ? 'нет связи' : 'свободно'}</span>`}${state.isHost && p.occupied && !p.hostPlayer ? `<button class="btn danger btn-icon" title="Удалить из комнаты" aria-label="Удалить ${esc(p.name)}" onclick="uiKickPlayer('${p.id}')">×</button>` : ''}</div>
+          </div>`).join('')}
+        </div>
+      </section>
+      <aside class="panel lobby-side">
+        <div class="panel-kicker">Сценарий</div>
+        <h2>${esc(g.roomTitle)}</h2>
+        <div class="metric"><span>Катастрофа</span><strong>${esc(g.catastrophe.title)}</strong></div>
+        <div class="metric"><span>Бункер</span><strong>${esc(g.bunker.title)}</strong></div>
+        <div class="metric"><span>Готовы к старту</span><strong>${connected >= minPlayers ? 'можно начинать' : `нужно ещё ${minPlayers - connected}`}</strong></div>
+        ${state.isHost ? `<button class="btn primary btn-lg full lobby-start" ${connected < minPlayers ? 'disabled':''} onclick="uiStartGame()">${connected < minPlayers ? `Нужно минимум ${minPlayers}` : 'Начать игру'}</button>` : '<div class="notice">Создатель комнаты запустит игру, когда соберутся минимум 4 игрока.</div>'}
+      </aside>
+    </div>
+  `;
+}
 function renderGame() {
   const g = state.game;
   if (g.status === 'finished' || g.currentPhase === 'final') return renderFinal();
@@ -1174,24 +1411,29 @@ function renderGame() {
       <div class="tab">${phaseLabel(g)}</div>
       <div class="tab">Мест: ${g.capacity}</div>
       ${g.currentRoundEliminationTarget === 2 ? '<div class="tab">двойное исключение</div>' : ''}
+      ${!state.isHost ? '<button class="tab tab-action" onclick="uiLeaveRoom()">Выйти</button>' : ''}
     </div>
+    ${state.connectionLost ? `<div class="notice danger connection-loss"><strong>Связь с хостом потеряна.</strong><button class="btn" onclick="uiReconnect()">Переподключиться</button></div>` : ''}
 
-    <section class="panel">
-      <div class="grid two">
-        <div>
-          <div class="phase">Катастрофа</div>
-          <h2>${esc(g.catastrophe.title)}</h2>
-          <p class="muted">${esc(g.catastrophe.desc)}</p>
-        </div>
+    <section class="panel catastrophe-panel">
+      <div class="catastrophe-visual">
+        <img src="${esc(g.catastrophe.image)}" alt="Иллюстрация: ${esc(g.catastrophe.title)}" loading="eager" decoding="async" />
+      </div>
+      <div class="catastrophe-copy">
+        <div class="phase">Катастрофа · ${g.catastrophe.duration} лет</div>
+        <h2>${esc(g.catastrophe.title)}</h2>
+        <p class="muted">${esc(g.catastrophe.desc)}</p>
+      </div>
+      <div class="grid two bunker-summary">
         <div>
           <div class="phase">Бункер</div>
           <h2>${esc(g.bunker.title)}</h2>
           <p class="muted">${esc(g.bunker.desc)}</p>
-          <div class="grid three" style="margin-top:10px">
-            <div class="notice"><strong>${g.bunker.food}</strong><div class="small">мес. еды</div></div>
-            <div class="notice"><strong>${g.bunker.water}</strong><div class="small">мес. воды</div></div>
-            <div class="notice"><strong>${g.bunker.energy}%</strong><div class="small">энергия</div></div>
-          </div>
+        </div>
+        <div class="grid three" style="align-content:start">
+          <div class="notice"><strong>${g.bunker.food}</strong><div class="small">мес. еды</div></div>
+          <div class="notice"><strong>${g.bunker.water}</strong><div class="small">мес. воды</div></div>
+          <div class="notice"><strong>${g.bunker.energy}%</strong><div class="small">энергия</div></div>
         </div>
       </div>
     </section>
@@ -1209,7 +1451,7 @@ function renderGame() {
     <div style="height:14px"></div>
     <section class="panel">
       <h3>Моя карточка</h3>
-      ${me ? renderMyCards(me, quota) : '<p class="muted">Режим ведущего: персонажа нет.</p>'}
+      ${me ? renderMyCards(me, quota) : '<p class="muted">Персонаж не найден.</p>'}
     </section>
 
     <div style="height:14px"></div>
@@ -1218,7 +1460,7 @@ function renderGame() {
       <div class="small">${g.log.slice(-8).map(x => `<div style="padding:5px 0;border-bottom:1px dashed var(--line)">${esc(x)}</div>`).join('')}</div>
     </section>
 
-    ${state.isHost ? `<div class="sticky-action"><section class="panel"><div class="row space"><div><strong>Панель создателя</strong><div class="small">Ты можешь вести таймеры и переключать этапы.</div></div>${hostControls(g, current)}</div></section></div>` : ''}
+    ${state.isHost ? `<div class="sticky-action"><section class="panel"><div class="row space"><div><strong>Управление партией</strong><div class="small">Техническое управление таймерами и переходами этапов.</div></div>${hostControls(g, current)}</div></section></div>` : ''}
   `;
 }
 
@@ -1257,7 +1499,7 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
     return `<section class="panel"><div class="row space"><div><div class="phase">Голосование ${g.voteRound > 1 ? '(повторное)' : ''}</div><h2>Кого исключаем?</h2></div><div class="center"><div class="timer" style="font-size:34px">${formatTime(g.timeLeft)}</div></div></div>
       <div class="notice success"><strong>2 минуты · живое голосование</strong><div class="small" style="margin-top:5px">Пока таймер идёт, можно обсуждать, защищаться и менять свой голос. Нераскрытые характеристики нельзя объявлять вслух. Нажатие «Завершить голосование» фиксирует результат.</div></div>
       <div class="row space" style="margin:12px 0"><span class="small">Проголосовали: <strong>${votedCount}/${everyone.length}</strong></span>${votedCount===everyone.length ? '<span class="small">Все проголосовали — можно завершить раньше.</span>' : ''}</div>
-      ${me && !me.eliminated ? `<div class="vote-grid">${everyone.map(p => `<label class="vote-option"><input type="radio" name="vote" value="${esc(p.id)}" ${myVote===p.id?'checked':''} onchange="uiVote('${p.id}')" /> <span>${esc(p.name)}</span></label>`).join('')}</div>` : '<div class="notice">Режим ведущего или вы уже выбыли.</div>'}
+      ${me && !me.eliminated ? `<div class="vote-grid">${everyone.map(p => `<label class="vote-option"><input type="radio" name="vote" value="${esc(p.id)}" ${myVote===p.id?'checked':''} onchange="uiVote('${p.id}')" /> <span>${esc(p.name)}</span></label>`).join('')}</div>` : '<div class="notice">Вы уже выбыли из текущего состава.</div>'}
       ${skipAvailable && me && !me.eliminated ? `<div class="vote-skip"><div><strong>Вариант первого раунда: пропуск</strong><div class="small">Если за пропуск наберётся больше половины игроков, никто не выбывает, а в следующем раунде исключаются два человека.</div></div><button class="btn ${skipChoice?'primary':''}" onclick="uiSkipChoice(${skipChoice?'false':'true'})">${skipChoice?'✓ Я за пропуск':'Я за пропуск'}</button></div>` : ''}
     </section>`;
   }
@@ -1289,7 +1531,7 @@ function cardDescription(type, card) {
 function renderPlayerRow(p) {
   const status = p.eliminated ? 'выбыл' : p.bunkered ? 'в бункере' : p.connected ? 'в лагере' : 'не в сети';
   const opened = p.revealed.map(t => CARD_NAMES[t]).join(', ') || 'ничего';
-  return `<div class="player"><div class="dot ${p.eliminated?'out':p.connected?'on':''}"></div><div><strong>${esc(p.name)}</strong><div class="small">${status} · открыто: ${esc(opened)}</div></div><div class="small">${p.hostPlayer?'создатель':''}</div></div>`;
+  return `<div class="player game-player"><div class="avatar ${p.eliminated?'avatar-out':p.bunkered?'avatar-safe':''}">${playerAvatar(p)}</div><div><strong>${esc(p.name)}</strong><div class="small">${status} · открыто: ${esc(opened)}</div></div><div class="small player-status">${p.hostPlayer?'создатель':''}</div></div>`;
 }
 
 function hostControls(g, current) {
@@ -1349,16 +1591,23 @@ function render() {
 
 window.uiCreate = () => {
   const name = document.getElementById('hostName')?.value || '';
-  const count = Number(document.getElementById('playerCount')?.value || 6);
-  const leader = document.getElementById('leaderMode')?.value === 'true';
   if (!name.trim()) return toast('Введите имя.');
-  createHost(name, count, leader);
+  createHost(name);
 };
 window.uiJoin = () => {
+  if (state.joinBusy) return;
   const name = document.getElementById('joinName')?.value || '';
   if (!name.trim()) return toast('Введите имя.');
   joinRoom(getRoomFromUrl(), name);
 };
+window.uiReconnect = () => {
+  const room = getRoomFromUrl() || state.roomCode;
+  if (!room) return toast('Ссылка на комнату потеряна.');
+  const name = document.getElementById('joinName')?.value || state.myName || savedName();
+  if (!name.trim()) return toast('Введите имя.');
+  joinRoom(room, name);
+};
+window.uiKickPlayer = playerId => kickPlayer(playerId);
 window.uiReveal = type => revealCard(state.myPlayerId, type);
 window.uiFinishTurn = () => {
   if (state.isHost) finishTurn(); else sendToHost({ action:'finishTurn' });
@@ -1374,11 +1623,29 @@ window.uiFinishDefense = () => { if (state.isHost) finishDefense(); else sendToH
 window.uiFinishFarewell = () => { if (state.isHost) finishFarewell(); else sendToHost({ action:'finishFarewell' }); };
 window.uiStartGame = () => {
   if (!state.isHost) return;
-  if (state.game.players.filter(p=>p.connected).length < state.game.settings.playerCount) return toast('В лобби не хватает игроков.');
+  const connectedPlayers = state.game.players.filter(p => p.connected && p.occupied && !p.eliminated);
+  if (connectedPlayers.length < 4) return toast('Нужно минимум 4 игрока.');
+  state.game.players = connectedPlayers;
+  state.game.settings.playerCount = connectedPlayers.length;
+  state.game.capacity = bunkerSlots(connectedPlayers.length);
   state.game.log.push(`Катастрофа: ${state.game.catastrophe.title}. Бункер: ${state.game.bunker.title}.`);
   state.game.currentRoundEliminationTarget = 1;
   startRound(1);
 };
+window.uiLeaveRoom = () => {
+  if (state.isHost) return toast('Создатель управляет комнатой до конца партии.');
+  if (state.pendingHost?.open) state.pendingHost.send({ action: 'leaveRoom' });
+  closeClientPeer();
+  state.game = null;
+  state.mode = 'start';
+  state.connectionLost = false;
+  const url = new URL(location.href);
+  url.search = '';
+  history.replaceState(null, '', url);
+  setBadge('не подключено');
+  render();
+};
+
 window.copyRoomLink = async () => {
   const url = location.href;
   try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована.'); }
