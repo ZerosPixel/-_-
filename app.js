@@ -142,6 +142,8 @@ const state = {
   myName: '',
   clientId: null,
   joinBusy: false,
+  joinError: '',
+  joinTimeoutHandle: null,
   connectionLost: false,
   connections: new Map(),
   pendingHost: null,
@@ -957,13 +959,19 @@ function autoAdvanceTimerPhase() {
 }
 
 function sanitizeForPeer(g, playerId) {
+  // Each client receives its owner's full character, while other players receive
+  // only revealed values. Hidden values and modifiers are removed before send.
   const clone = structuredClone(g);
+  const revealEverything = g.status === 'finished' || g.currentPhase === 'final';
   clone.players = clone.players.map(p => {
     if (p.id === playerId) return p;
     const q = { ...p, cards: {} };
     for (const [type] of CARD_TYPES) {
-      if (p.revealed.includes(type) || p.bunkered) q.cards[type] = { type, value: p.cards[type].value, mods: {} };
-      else q.cards[type] = { type, value: 'Скрыто', mods: {} };
+      const card = p.cards?.[type] || {};
+      const revealed = revealEverything || (Array.isArray(p.revealed) && p.revealed.includes(type));
+      q.cards[type] = revealed
+        ? { type, value: card.value ?? null, revealed: true, mods: {} }
+        : { type, value: null, revealed: false, mods: {} };
     }
     return q;
   });
@@ -1067,7 +1075,13 @@ function disconnectPlayerConnection(conn) {
   if (state.game) syncAndRender();
 }
 
+function clearJoinTimeout() {
+  if (state.joinTimeoutHandle) clearTimeout(state.joinTimeoutHandle);
+  state.joinTimeoutHandle = null;
+}
+
 function closeClientPeer() {
+  clearJoinTimeout();
   try { state.pendingHost?.close(); } catch {}
   try { state.peer?.destroy(); } catch {}
   state.pendingHost = null;
@@ -1117,7 +1131,9 @@ function createHost(name) {
 
 function joinRoom(roomCode, name) {
   if (!roomCode || state.joinBusy) return;
+  clearJoinTimeout();
   state.joinBusy = true;
+  state.joinError = '';
   state.connectionLost = false;
   state.isHost = false;
   state.hostId = `bunker-${String(roomCode).trim().toUpperCase()}`;
@@ -1130,9 +1146,11 @@ function joinRoom(roomCode, name) {
 
   const peer = new Peer(undefined, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } });
   state.peer = peer;
-  const joinTimeout = setTimeout(() => {
+  state.joinTimeoutHandle = setTimeout(() => {
+    state.joinTimeoutHandle = null;
     if (state.joinBusy) {
       state.joinBusy = false;
+      state.joinError = 'Комната не ответила за 15 секунд. Проверьте ссылку и соединение.';
       setBadge('нет ответа от комнаты');
       toast('Комната не отвечает. Проверьте интернет и повторите подключение.');
       render();
@@ -1144,16 +1162,15 @@ function joinRoom(roomCode, name) {
     const conn = peer.connect(state.hostId, { reliable: true, serialization: 'json' });
     state.pendingHost = conn;
     conn.on('open', () => {
-      clearTimeout(joinTimeout);
-      state.joinBusy = false;
       state.connectionLost = false;
-      setBadge(`комната ${state.roomCode}`, true);
+      setBadge(`комната ${state.roomCode} · ожидание состояния`, false);
       conn.send({ action:'joinLobby', name: state.myName, peerId: myId, clientId: state.clientId });
       render();
     });
     conn.on('data', msg => handleClientMessage(msg));
     conn.on('close', () => {
       if (state.mode === 'kicked') return;
+      clearJoinTimeout();
       state.connectionLost = true;
       state.joinBusy = false;
       state.pendingHost = null;
@@ -1164,9 +1181,10 @@ function joinRoom(roomCode, name) {
     conn.on('error', err => { console.error(err); });
   });
   peer.on('error', err => {
-    clearTimeout(joinTimeout);
+    clearJoinTimeout();
     console.error(err);
     state.joinBusy = false;
+    state.joinError = err?.type === 'peer-unavailable' ? 'Комната не найдена. Проверьте код или ссылку.' : 'Не удалось установить соединение. Попробуйте ещё раз.';
     setBadge('ошибка связи');
     toast(err?.type === 'peer-unavailable' ? 'Комната не найдена. Проверьте ссылку.' : 'Не удалось подключиться. Попробуйте ещё раз.');
     render();
@@ -1188,7 +1206,9 @@ function handleClientMessage(msg) {
     return;
   }
   if (msg.type === 'error') {
+    clearJoinTimeout();
     state.joinBusy = false;
+    state.joinError = String(msg.message || 'Комната отклонила подключение.');
     setBadge('ошибка комнаты');
     toast(msg.message || 'Комната отклонила подключение.');
     render();
@@ -1209,9 +1229,11 @@ function handleClientMessage(msg) {
     return;
   }
   if (msg.type === 'state') {
+    clearJoinTimeout();
     state.game = msg.game;
     state.mode = 'game';
     state.joinBusy = false;
+    state.joinError = '';
     state.connectionLost = false;
     setBadge(`комната ${state.roomCode}`, true);
     render();
@@ -1402,17 +1424,18 @@ function renderGame() {
   const me = localPlayer();
   const current = currentTurnPlayer();
   const quota = revealQuota(g.settings.playerCount, g.round || 1);
-  const canAct = me && current?.id === me.id && g.currentPhase === 'turns' && !me.eliminated;
+  const canAct = !!(me && current?.id === me.id && g.currentPhase === 'turns' && !me.eliminated);
   const myRemaining = me ? remainingCardTypes(me) : [];
+  const myRemainingCount = canAct && me ? Math.max(0, quota - (me.revealsThisRound || 0)) : 0;
 
   APP.innerHTML = `
-    <div class="tabs">
+    <nav class="tabs phase-tabs" aria-label="Этап игры">
       <div class="tab active">Раунд ${g.round}</div>
-      <div class="tab">${phaseLabel(g)}</div>
-      <div class="tab">Мест: ${g.capacity}</div>
-      ${g.currentRoundEliminationTarget === 2 ? '<div class="tab">двойное исключение</div>' : ''}
+      <div class="tab">${esc(phaseLabel(g))}</div>
+      <div class="tab">Мест в бункере: ${g.capacity}</div>
+      ${g.currentRoundEliminationTarget === 2 ? '<div class="tab tab-warn">Двойное исключение</div>' : ''}
       ${!state.isHost ? '<button class="tab tab-action" onclick="uiLeaveRoom()">Выйти</button>' : ''}
-    </div>
+    </nav>
     ${state.connectionLost ? `<div class="notice danger connection-loss"><strong>Связь с хостом потеряна.</strong><button class="btn" onclick="uiReconnect()">Переподключиться</button></div>` : ''}
 
     <section class="panel catastrophe-panel">
@@ -1430,7 +1453,7 @@ function renderGame() {
           <h2>${esc(g.bunker.title)}</h2>
           <p class="muted">${esc(g.bunker.desc)}</p>
         </div>
-        <div class="grid three" style="align-content:start">
+        <div class="grid three bunker-metrics">
           <div class="notice"><strong>${g.bunker.food}</strong><div class="small">мес. еды</div></div>
           <div class="notice"><strong>${g.bunker.water}</strong><div class="small">мес. воды</div></div>
           <div class="notice"><strong>${g.bunker.energy}%</strong><div class="small">энергия</div></div>
@@ -1438,29 +1461,35 @@ function renderGame() {
       </div>
     </section>
 
-    <div style="height:14px"></div>
-
+    <div class="section-spacer"></div>
     ${renderPhase(g, me, current, quota, canAct, myRemaining)}
 
-    <div style="height:14px"></div>
-    <section class="panel">
-      <div class="row space"><h3>Игроки</h3><span class="small">зелёная точка — в сети</span></div>
-      <div class="player-list">${g.players.map(p => renderPlayerRow(p)).join('')}</div>
+    <div class="section-spacer"></div>
+    <section class="panel my-cards-panel">
+      <div class="panel-heading-row">
+        <div><div class="panel-kicker">Ваш персонаж</div><h2>Мои характеристики</h2></div>
+        <div class="my-card-count">${me ? `${me.revealed.length}/${CARD_TYPES.length} раскрыто` : 'Персонаж не найден'}</div>
+      </div>
+      ${me ? renderMyCards(me, quota, canAct, myRemaining, myRemainingCount) : '<p class="muted">Персонаж не найден.</p>'}
+      ${canAct ? `<div class="turn-footnote">Ваш ход: выберите раскрываемые карты выше. Осталось раскрыть: <strong>${myRemainingCount}</strong>.</div>` : ''}
     </section>
 
-    <div style="height:14px"></div>
-    <section class="panel">
-      <h3>Моя карточка</h3>
-      ${me ? renderMyCards(me, quota) : '<p class="muted">Персонаж не найден.</p>'}
+    <div class="section-spacer"></div>
+    <section class="panel players-board-panel">
+      <div class="panel-heading-row">
+        <div><div class="panel-kicker">Общее поле</div><h2>Игроки и характеристики</h2></div>
+        <span class="small">Закрытые значения видны только их владельцам.</span>
+      </div>
+      <div class="players-board">${g.players.map(p => renderPlayerRow(p, me, false)).join('')}</div>
     </section>
 
-    <div style="height:14px"></div>
-    <section class="panel">
-      <h3>Журнал</h3>
-      <div class="small">${g.log.slice(-8).map(x => `<div style="padding:5px 0;border-bottom:1px dashed var(--line)">${esc(x)}</div>`).join('')}</div>
-    </section>
+    <div class="section-spacer"></div>
+    <details class="panel log-panel">
+      <summary><span>Журнал партии</span><span class="small">последние события</span></summary>
+      <div class="log-list">${g.log.slice(-8).map(x => `<div>${esc(x)}</div>`).join('')}</div>
+    </details>
 
-    ${state.isHost ? `<div class="sticky-action"><section class="panel"><div class="row space"><div><strong>Управление партией</strong><div class="small">Техническое управление таймерами и переходами этапов.</div></div>${hostControls(g, current)}</div></section></div>` : ''}
+    ${state.isHost ? `<div class="sticky-action"><section class="panel"><div class="row space"><div><strong>Управление партией</strong><div class="small">Таймеры и переходы этапов.</div></div>${hostControls(g, current)}</div></section></div>` : ''}
   `;
 }
 
@@ -1468,13 +1497,13 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
   if (g.currentPhase === 'turns') {
     const p = current;
     const remaining = p ? Math.max(0, quota - (p.revealsThisRound || 0)) : 0;
-    return `<section class="panel">
-      <div class="row space">
-        <div><div class="phase">Сейчас ходит</div><h2>${p ? esc(p.name) : '—'}</h2></div>
-        <div class="center"><div class="small">открыто в этом раунде</div><strong>${p?.revealsThisRound || 0} / ${quota}</strong></div>
+    return `<section class="panel turn-panel">
+      <div class="turn-panel-head">
+        <div><div class="phase">${canAct ? 'Ваш ход' : 'Сейчас ходит'}</div><h2>${p ? esc(p.name) : '—'}</h2></div>
+        <div class="turn-progress"><span>Раскрыто в раунде</span><strong>${p?.revealsThisRound || 0}<i>/</i>${quota}</strong></div>
       </div>
-      ${g.round === 1 ? '<div class="notice" style="margin:10px 0">Профессия уже открыта автоматически. В этом ходу игрок выбирает ещё 2 характеристики.</div>' : '<div class="notice" style="margin:10px 0">В свой ход игрок сам выбирает нужное количество оставшихся характеристик.</div>'}
-      ${p && p.id === me?.id && canAct ? renderChooseCard(p, myRemaining, remaining) : '<p class="muted">Когда дойдёт ваша очередь, здесь появятся кнопки выбора.</p>'}
+      <div class="turn-guidance">${g.round === 1 ? 'Профессия уже открыта автоматически. Выберите оставшиеся характеристики своего хода.' : 'Откройте нужные характеристики в секции «Мои характеристики» ниже.'}</div>
+      ${canAct ? `<div class="turn-active-note"><span class="status-pip"></span> Выбирайте карты прямо в своей колоде ниже. Осталось: <strong>${remaining}</strong></div>` : '<p class="muted turn-waiting">Карты откроются для выбора, когда наступит ваш ход.</p>'}
     </section>`;
   }
   if (g.currentPhase === 'discussion') return `<section class="panel center"><div class="phase">Общее обсуждение</div><div class="timer">${formatTime(g.timeLeft)}</div><p class="muted">2 минуты общего обсуждения. Можно свободно обсуждать полезность персонажей.</p>${g.timerRunning ? '' : `<button class="btn primary" onclick="uiTimer(120)">Запустить 120 сек</button>`}</section>`;
@@ -1506,32 +1535,61 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
   return '';
 }
 
-function renderChooseCard(p, types, remaining) {
-  return `<div class="grid cards">
-    ${types.map(type => `<div class="card hidden"><div class="card-head">${CARD_NAMES[type]}</div><div class="card-body"><strong>Скрыто</strong><p>Нажмите, чтобы открыть эту характеристику.</p></div><button class="btn primary reveal-btn" onclick="uiReveal('${type}')">Открыть</button></div>`).join('')}
-    <div class="notice" style="grid-column:1/-1">Осталось открыть: <strong>${remaining}</strong></div>
-    <button class="btn success" ${remaining>0?'disabled':''} onclick="uiFinishTurn()">Закончить ход</button>
-  </div>`;
-}
+const CARD_SYMBOLS = {
+  biology: '◈', physique: '△', trait: '✦', profession: '⚙', health: '+',
+  hobby: '◆', fear: '◌', largeGear: '▣', backpack: '⌁', fact: '◇', extra: '✧'
+};
 
-function renderMyCards(p, quota) {
-  return `<div class="grid cards">
+function renderChooseCard(p, selectableTypes = [], remaining = 0, canAct = false) {
+  const canRevealType = type => canAct && remaining > 0 && selectableTypes.includes(type) && !p.revealed.includes(type) && !p.eliminated;
+  return `<div class="grid cards my-cards-grid">
     ${CARD_TYPES.map(([type]) => {
-      const open = p.revealed.includes(type) || p.bunkered;
-      const card = p.cards[type];
-      return `<div class="card ${open?'':'hidden'}"><div class="card-head">${CARD_NAMES[type]}</div><div class="card-body"><strong>${open ? esc(card.value) : 'Скрыто'}</strong><p>${open ? cardDescription(type, card) : 'Эту карточку увидит только игрок до раскрытия.'}</p></div></div>`;
+      const card = p.cards?.[type] || {};
+      const open = p.revealed.includes(type);
+      const status = open ? '✓ Раскрыто' : 'Не раскрыта';
+      const revealButton = canRevealType(type)
+        ? `<button class="btn primary reveal-btn" onclick="uiRevealOnce(this, '${type}')">Раскрыть</button>`
+        : '';
+      return `<article class="card character-card ${open ? 'card-open' : 'card-owner-hidden'}" data-card-type="${type}">
+        <div class="card-head"><span class="card-symbol" aria-hidden="true">${CARD_SYMBOLS[type] || '◇'}</span><span>${CARD_NAMES[type]}</span></div>
+        <div class="card-body"><strong>${esc(card.value ?? 'Нет данных')}</strong><div class="card-status ${open ? 'is-open' : 'is-private'}">${status}</div></div>
+        ${revealButton}
+      </article>`;
     }).join('')}
   </div>`;
 }
-function cardDescription(type, card) {
-  if (type==='profession') return 'Профессия — основной параметр знакомства.';
-  if (type==='biology') return 'Пол и возраст используются только как абстрактный демографический параметр финальной симуляции.';
-  return 'Карта помогает оценивать полезность персонажа в конкретном бункере и катастрофе.';
+
+function renderMyCards(p, quota, canAct = false, remainingTypes = [], remainingCount = 0) {
+  // The owner always sees the true value; revealed only controls other clients.
+  return renderChooseCard(p, remainingTypes, remainingCount, canAct);
 }
-function renderPlayerRow(p) {
-  const status = p.eliminated ? 'выбыл' : p.bunkered ? 'в бункере' : p.connected ? 'в лагере' : 'не в сети';
-  const opened = p.revealed.map(t => CARD_NAMES[t]).join(', ') || 'ничего';
-  return `<div class="player game-player"><div class="avatar ${p.eliminated?'avatar-out':p.bunkered?'avatar-safe':''}">${playerAvatar(p)}</div><div><strong>${esc(p.name)}</strong><div class="small">${status} · открыто: ${esc(opened)}</div></div><div class="small player-status">${p.hostPlayer?'создатель':''}</div></div>`;
+
+function renderPlayerCard(type, p, viewer, forceReveal = false) {
+  const card = p.cards?.[type] || {};
+  const isOwner = viewer?.id === p.id;
+  const revealed = forceReveal || (Array.isArray(p.revealed) && p.revealed.includes(type));
+  const canSeeValue = isOwner || revealed;
+  const value = canSeeValue ? esc(card.value ?? 'Нет данных') : '???';
+  const status = revealed ? '✓ Раскрыто' : (isOwner ? 'Не раскрыта' : 'Скрыто');
+  return `<div class="board-card ${revealed ? 'board-card-open' : 'board-card-hidden'}">
+    <div class="board-card-title"><span aria-hidden="true">${CARD_SYMBOLS[type] || '◇'}</span>${CARD_NAMES[type]}</div>
+    <div class="board-card-value">${value}</div>
+    <div class="board-card-status">${status}</div>
+  </div>`;
+}
+
+function renderPlayerRow(p, viewer = null, forceReveal = false) {
+  const status = p.eliminated ? 'Выбыл' : p.bunkered ? 'В бункере' : p.connected ? 'В лагере' : 'Нет связи';
+  const statusClass = p.eliminated ? 'is-out' : p.bunkered ? 'is-safe' : p.connected ? 'is-online' : 'is-offline';
+  const isMine = viewer?.id === p.id;
+  return `<article class="player-board-card ${isMine ? 'player-board-me' : ''} ${p.eliminated ? 'player-board-out' : ''}">
+    <header class="player-board-head">
+      <div class="avatar ${p.eliminated ? 'avatar-out' : p.bunkered ? 'avatar-safe' : ''}" aria-hidden="true">${playerAvatar(p)}</div>
+      <div class="player-board-name"><strong>${esc(p.name)}</strong><span class="player-state ${statusClass}"><i></i>${status}</span></div>
+      ${isMine ? '<span class="you-pill">Вы</span>' : ''}
+    </header>
+    <div class="player-card-grid">${CARD_TYPES.map(([type]) => renderPlayerCard(type, p, viewer, forceReveal)).join('')}</div>
+  </article>`;
 }
 
 function hostControls(g, current) {
@@ -1575,15 +1633,37 @@ function renderFinal() {
     <div style="height:14px"></div>
     <section class="panel"><h2>Что повлияло на результат</h2><div class="small">${r.details.reasons.map(x=>`<div style="padding:6px 0;border-bottom:1px dashed var(--line)">• ${esc(x)}</div>`).join('')}</div></section>
     <div style="height:14px"></div>
-    <section class="panel"><h2>Все характеристики выживших</h2><div class="grid cards">${survivors.flatMap(p=>CARD_TYPES.map(([t])=>`<div class="card"><div class="card-head">${esc(p.name)} · ${CARD_NAMES[t]}</div><div class="card-body"><strong>${esc(p.cards[t].value)}</strong><p>${cardDescription(t,p.cards[t])}</p></div></div>`)).join('')}</div></section>
+    <section class="panel final-board-panel"><div class="panel-heading-row"><div><div class="panel-kicker">Полное раскрытие</div><h2>Все характеристики выживших</h2></div><span class="small">Итоговое игровое поле</span></div><div class="players-board">${survivors.map(p => renderPlayerRow(p, null, true)).join('')}</div></section>
   `;
 }
 
 function metricName(k) { return ({ resource:'Ресурсы', systems:'Техника и энергия', medicine:'Медицина', teamwork:'Командная работа', food:'Производство пищи', environment:'Среда и автономность', demographic:'Демографическая устойчивость', physical:'Физическая устойчивость', synergy:'Синергия состава' })[k] || k; }
 function formatTime(s) { const m = Math.floor(Math.max(0,s)/60); const sec = Math.max(0,s)%60; return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
 
+function renderConnecting() {
+  const lost = state.connectionLost;
+  const message = state.joinBusy
+    ? 'Устанавливаем соединение и запрашиваем актуальное состояние комнаты.'
+    : lost
+      ? 'Соединение прервано. Можно повторить подключение.'
+      : state.joinError
+        ? state.joinError
+        : 'Ожидаем подтверждение комнаты. Игровой экран появится после получения актуального состояния.';
+  APP.innerHTML = `
+    <section class="panel connecting-panel center" role="status" aria-live="polite">
+      <div class="connecting-mark">${lost ? '↻' : '◌'}</div>
+      <div class="phase">${lost ? 'Соединение потеряно' : 'Подключение к комнате'}</div>
+      <h1>${lost ? 'Нет связи' : state.joinError ? 'Не удалось подключиться' : state.joinBusy ? 'Подключаемся…' : 'Получаем состояние…'}</h1>
+      <p class="muted">${esc(message)}</p>
+      <div class="connecting-room">Комната ${esc(state.roomCode || getRoomFromUrl() || '—')}</div>
+      ${!state.joinBusy ? '<button class="btn primary btn-lg" onclick="uiReconnect()">Повторить подключение</button>' : '<div class="connecting-spinner" aria-hidden="true"></div>'}
+      <button class="btn connecting-back" onclick="uiLeaveRoom()">Вернуться на главный экран</button>
+    </section>`;
+}
+
 function render() {
-  if (state.mode === 'start' || state.mode === 'joining') { APP.innerHTML = buildSetupHtml(); return; }
+  if (state.mode === 'joining') { renderConnecting(); return; }
+  if (state.mode === 'start') { APP.innerHTML = buildSetupHtml(); return; }
   if (!state.game) { APP.innerHTML = buildSetupHtml(); return; }
   if (state.game.status === 'lobby') { renderLobby(); return; }
   renderGame();
@@ -1609,6 +1689,12 @@ window.uiReconnect = () => {
 };
 window.uiKickPlayer = playerId => kickPlayer(playerId);
 window.uiReveal = type => revealCard(state.myPlayerId, type);
+window.uiRevealOnce = (button, type) => {
+  if (!button || button.disabled) return;
+  button.disabled = true;
+  button.textContent = 'Открываем…';
+  revealCard(state.myPlayerId, type);
+};
 window.uiFinishTurn = () => {
   if (state.isHost) finishTurn(); else sendToHost({ action:'finishTurn' });
 };
@@ -1638,7 +1724,10 @@ window.uiLeaveRoom = () => {
   closeClientPeer();
   state.game = null;
   state.mode = 'start';
+  state.joinBusy = false;
+  state.joinError = '';
   state.connectionLost = false;
+  clearJoinTimeout();
   const url = new URL(location.href);
   url.search = '';
   history.replaceState(null, '', url);
