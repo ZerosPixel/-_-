@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>БУНКЕР — простая онлайн-игра</title>
+  <meta name="description" content="Минималистичная онлайн-версия игры Бункер для компании 6–15 человек." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">БУНКЕР</div>
+    <div id="connectionBadge" class="badge">не подключено</div>
+  </header>
+
+  <main id="app" class="wrap"></main>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
