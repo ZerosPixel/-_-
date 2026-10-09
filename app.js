@@ -742,60 +742,70 @@ function removeTestBots() {
   syncAndRender();
 }
 function hostBotVote(botId, targetId) {
-  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return;
+  if (!state.isHost || !state.game || !['discussion', 'vote'].includes(state.game.currentPhase)) return;
   const bot = playerById(botId);
   if (!bot?.bot || bot.eliminated) return;
+  const g = state.game;
+  g.voteLocks[bot.id] = false;
   castVote(bot.id, targetId);
+  if (targetId) g.voteLocks[bot.id] = true;
 }
 function autoVoteForBots(showToast = true) {
-  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return false;
+  if (!state.isHost || !state.game || !['discussion', 'vote'].includes(state.game.currentPhase)) return false;
   const g = state.game;
-  const eligible = activePlayers();
-  const bots = eligible.filter(p => p.bot && !Object.prototype.hasOwnProperty.call(g.votes, p.id));
+  const eligible = eligibleVoters();
+  const bots = eligible.filter(p => p.bot && !g.voteLocks?.[p.id]);
   if (!eligible.length || !bots.length) { if (showToast) toast('Нет ботов, которым нужно проголосовать.'); return false; }
   bots.forEach(bot => {
     const choices = eligible.filter(p => p.id !== bot.id);
     const target = pick(choices.length ? choices : eligible);
     g.votes[bot.id] = target.id;
     bot.vote = target.id;
-    g.log.push(`Тестовый бот ${bot.name} проголосовал за ${target.name}.`);
+    g.voteLocks[bot.id] = true;
+    g.log.push(`Тестовый бот ${bot.name} проголосовал за ${target.name} и зафиксировал выбор.`);
   });
   syncAndRender();
-  const allVoted = eligible.every(p => Object.prototype.hasOwnProperty.call(g.votes, p.id));
-  if (allVoted) finishVote();
   if (showToast) toast(`Случайные голоса добавлены: ${bots.length}.`);
   return true;
 }
 
 function rerollBotVotes() {
-  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return false;
+  if (!state.isHost || !state.game || !['discussion', 'vote'].includes(state.game.currentPhase)) return false;
   const bots = activePlayers().filter(player => player.bot);
   if (!bots.length) return toast('В голосовании нет активных ботов.'), false;
-  bots.forEach(bot => { delete state.game.votes[bot.id]; bot.vote = null; });
+  bots.forEach(bot => { delete state.game.votes[bot.id]; bot.vote = null; state.game.voteLocks[bot.id] = false; });
   const changed = autoVoteForBots(false);
   if (changed) toast('Голоса ботов случайно перераспределены.');
   return changed;
 }
 
 function hostBotSkipChoice(botId, enabled) {
-  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return false;
+  if (!state.isHost || !state.game || !['discussion', 'vote'].includes(state.game.currentPhase)) return false;
   const g = state.game;
-  if (g.round !== 1 || g.voteRound !== 1 || g.skipUsed) return false;
+  if (!canSkipCurrentVote(g)) return false;
   const bot = playerById(botId);
   if (!bot?.bot || bot.eliminated) return false;
   g.skipChoices[botId] = !!enabled;
+  if (enabled) { delete g.votes[botId]; bot.vote = null; }
+  else if (!g.votes[botId]) { const targets = activePlayers().filter(p => p.id !== bot.id); const target = pick(targets.length ? targets : activePlayers()); if (target) { g.votes[botId] = target.id; bot.vote = target.id; } }
+  g.voteLocks[botId] = true;
   g.log.push(`Хост выбрал для тестового бота ${bot.name}: ${enabled ? 'за пропуск' : 'не за пропуск'}.`);
   syncAndRender();
   return true;
 }
 
 function autoSkipChoiceForBots() {
-  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return;
+  if (!state.isHost || !state.game || !['discussion', 'vote'].includes(state.game.currentPhase)) return;
   const g = state.game;
-  if (g.round !== 1 || g.voteRound !== 1 || g.skipUsed) return toast('Пропуск доступен только в первом голосовании первого раунда.');
+  if (!canSkipCurrentVote(g)) return toast('Пропуск доступен один раз; после него следующий раунд требует исключить двоих.');
   const bots = activePlayers().filter(p => p.bot);
   if (!bots.length) return toast('Нет активных ботов для выбора пропуска.');
-  bots.forEach(bot => { g.skipChoices[bot.id] = Math.random() < 0.5; });
+  bots.forEach(bot => {
+    g.skipChoices[bot.id] = Math.random() < 0.5;
+    if (g.skipChoices[bot.id]) { delete g.votes[bot.id]; bot.vote = null; }
+    else if (!g.votes[bot.id]) { const targets = activePlayers().filter(p => p.id !== bot.id); const target = pick(targets.length ? targets : activePlayers()); if (target) { g.votes[bot.id] = target.id; bot.vote = target.id; } }
+    g.voteLocks[bot.id] = true;
+  });
   syncAndRender();
   toast('Боты сделали случайный выбор по пропуску.');
 }
@@ -806,6 +816,7 @@ function createGame(settings, names, hostPlayerIdx = null) {
   assignUniqueItemCards(players);
   return {
     version: 2,
+    storySeed: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     status: 'lobby',
     stateSeq: 0,
     round: 0,
@@ -832,6 +843,7 @@ function createGame(settings, names, hostPlayerIdx = null) {
     eliminationsThisRound: 0,
     voteRound: 0,
     votes: {},
+    voteLocks: {},
     votingLocked: false,
     skipChoices: {},
     defendedThisRound: [],
@@ -862,7 +874,13 @@ function startRound(round) {
   g.eliminationsThisRound = 0;
   g.voteRound = 0;
   g.votes = {};
+  g.voteLocks = {};
+  g.votingLocked = false;
   g.skipChoices = {};
+  g.timeLeft = 0;
+  g.timerRunning = false;
+  g.timerDeadline = null;
+  g.timerExpiredHandled = false;
   g.defendedThisRound = [];
   g.defenseCandidates = [];
   g.defenseQueue = [];
@@ -933,6 +951,13 @@ function revealCard(playerId, type, requestId = null) {
   p.revealsThisRound += 1;
   p.lastRevealRound = g.round;
   g.log.push(`${p.name} открыл «${CARD_NAMES[type]}».`);
+  if (p.revealsThisRound >= q) {
+    g.timeLeft = 180;
+    g.timerDeadline = Date.now() + 180000;
+    g.timerRunning = true;
+    g.timerExpiredHandled = false;
+    g.log.push(`Началось трёхминутное объяснение ${p.name}: почему его навыки полезны группе.`);
+  }
   syncAndRender();
   return true;
 }
@@ -943,6 +968,10 @@ function finishTurn() {
   const p = currentTurnPlayer();
   if (!p) return false;
   if (p.revealsThisRound < revealQuota(g.settings.playerCount, g.round)) return toast('Сначала откройте все характеристики на этот раунд.'), false;
+  g.timerRunning = false;
+  g.timerDeadline = null;
+  g.timerExpiredHandled = false;
+  g.timeLeft = 0;
   g.currentTurnIndex++;
   if (g.round === 1 && g.currentTurnIndex === 1) discoverWorldStage(0);
   if (g.currentTurnIndex >= orderedActive().length) {
@@ -950,6 +979,7 @@ function finishTurn() {
   } else {
     syncAndRender();
   }
+  return true;
 }
 
 function hostForceFinishTurn() {
@@ -970,58 +1000,40 @@ function hostForceFinishTurn() {
   return finishTurn();
 }
 
+function eligibleVoters() {
+  return activePlayers().filter(p => p.occupied !== false && !p.eliminated && (p.connected || p.bot || p.hostPlayer));
+}
+
+// The group gets one optional pass before it has used that option. If a pass wins,
+// nobody is removed this round and the next round requires two eliminations.
+function canSkipCurrentVote(g = state.game) {
+  return !!g && g.currentPhase === 'discussion' && !g.skipUsed && Number(g.currentRoundEliminationTarget || 1) === 1;
+}
+
 function beginDiscussion() {
-  state.game.currentPhase = 'discussion';
-  state.game.timeLeft = 120;
-  state.game.timerRunning = false;
-  state.game.timerDeadline = null;
-  state.game.timerExpiredHandled = false;
-  state.game.currentSpeechIndex = 0;
-  state.game.log.push('Общее обсуждение: 2 минуты.');
-  syncAndRender();
-}
-
-function beginSpeeches() {
   const g = state.game;
-  g.currentPhase = 'speeches';
+  g.currentPhase = 'discussion';
   g.currentSpeechIndex = 0;
-  g.timeLeft = 30;
-  g.timerRunning = false;
-  g.timerDeadline = null;
-  g.timerExpiredHandled = false;
-  activePlayers().forEach(p => p.speechDone = false);
-  syncAndRender();
-}
-
-function nextSpeech() {
-  const g = state.game;
-  if (g.currentPhase !== 'speeches') return;
-  const order = orderedActive();
-  if (g.currentSpeechIndex + 1 >= order.length) return beginVote();
-  g.currentSpeechIndex++;
-  g.timeLeft = 30;
-  g.timerRunning = false;
-  g.timerDeadline = null;
-  g.timerExpiredHandled = false;
-  syncAndRender();
-}
-
-function beginVote() {
-  const g = state.game;
-  g.currentPhase = 'vote';
+  g.voteRound = (Number(g.voteRound) || 0) + 1;
   g.votes = {};
+  g.voteLocks = {};
   g.skipChoices = {};
   g.votingLocked = false;
-  g.voteRound += 1;
-  g.timeLeft = 120;
-  g.timerRunning = false;
-  g.timerDeadline = null;
+  g.needsRevote = false;
+  eligibleVoters().forEach(p => { p.vote = null; });
+  g.timeLeft = 180;
+  g.timerDeadline = Date.now() + 180000;
+  g.timerRunning = true;
   g.timerExpiredHandled = false;
-  activePlayers().forEach(p => p.vote = null);
-  g.log.push(g.voteRound === 1 ? 'Голосование началось: 2 минуты, голоса можно менять.' : 'Началось повторное голосование: 2 минуты.');
-  syncAndRender();
+  g.log.push('Общее обсуждение полезности группы и голосование начались: 3 минуты. Можно менять выбор до фиксации.');
   autoVoteForBots(false);
+  syncAndRender();
 }
+
+// Legacy phase entry points now lead to the single combined discussion/vote stage.
+function beginSpeeches() { return beginDiscussion(); }
+function nextSpeech() { return beginDiscussion(); }
+function beginVote() { return beginDiscussion(); }
 
 function setSkipChoice(voterId, enabled) {
   if (!state.isHost) {
@@ -1029,111 +1041,140 @@ function setSkipChoice(voterId, enabled) {
     return;
   }
   const g = state.game;
-  if (g.currentPhase !== 'vote' || g.round !== 1 || g.voteRound !== 1 || g.skipUsed) return;
-  if (!activePlayers().some(p => p.id === voterId)) return;
+  if (!g || !canSkipCurrentVote(g)) return;
+  if (!eligibleVoters().some(p => p.id === voterId) || g.voteLocks?.[voterId]) return;
   g.skipChoices[voterId] = !!enabled;
+  if (enabled) {
+    delete g.votes[voterId];
+    const voter = playerById(voterId);
+    if (voter) voter.vote = null;
+  }
   syncAndRender();
 }
 
 function castVote(voterId, targetId) {
-  if (!state.isHost) { sendToHost({ action: 'vote', voterId: state.myPlayerId, targetId }); return; }
+  if (!state.isHost) {
+    sendToHost({ action: 'vote', voterId: state.myPlayerId, targetId: targetId || '' });
+    return true;
+  }
   const g = state.game;
-  if (g.currentPhase !== 'vote' || g.votingLocked) return false;
-  if (!activePlayers().some(p => p.id === voterId)) return false;
-  if (!activePlayers().some(p => p.id === targetId)) return false;
-  g.votes[voterId] = targetId;
+  if (!g || !['discussion', 'vote'].includes(g.currentPhase) || g.votingLocked) return false;
+  const eligible = eligibleVoters();
+  if (!eligible.some(p => p.id === voterId) || g.voteLocks?.[voterId]) return false;
+  if (targetId && !activePlayers().some(p => p.id === targetId)) return false;
+  if (targetId) {
+    g.votes[voterId] = targetId;
+    g.skipChoices[voterId] = false;
+  } else {
+    delete g.votes[voterId];
+  }
   const voter = playerById(voterId);
-  if (voter) voter.vote = targetId;
+  if (voter) voter.vote = targetId || null;
   syncAndRender();
-  const eligibleVoters = activePlayers().filter(p => p.occupied && !p.eliminated);
-  const allEligibleVoted = eligibleVoters.length > 0 && eligibleVoters.every(p => Object.prototype.hasOwnProperty.call(g.votes, p.id));
-  if (allEligibleVoted) finishVote();
   return true;
 }
 
-function finishVote() {
+function lockVote(voterId) {
+  if (!state.isHost) {
+    sendToHost({ action: 'lockVote', voterId: state.myPlayerId });
+    return true;
+  }
   const g = state.game;
-  if (g.currentPhase !== 'vote' || g.votingLocked) return;
+  if (!g || g.currentPhase !== 'discussion' || g.votingLocked) return false;
+  const eligible = eligibleVoters();
+  if (!eligible.some(p => p.id === voterId) || g.voteLocks?.[voterId]) return false;
+  const hasTarget = !!g.votes[voterId] && activePlayers().some(p => p.id === g.votes[voterId]);
+  const isSkip = !!g.skipChoices?.[voterId] && canSkipCurrentVote(g);
+  if (!hasTarget && !isSkip) {
+    return toast(canSkipCurrentVote(g)
+      ? 'Выберите игрока или отметьте единственный пропуск голосования.'
+      : 'В этом раунде нужно выбрать участника. Воздержаться нельзя.'), false;
+  }
+  g.voteLocks[voterId] = true;
+  g.log.push(`${playerById(voterId)?.name || 'Игрок'} зафиксировал решение.`);
+  const allLocked = eligible.every(p => !!g.voteLocks[p.id]);
+  if (allLocked) finishVote(false);
+  else syncAndRender();
+  return true;
+}
+
+function finishVote(force = false) {
+  const g = state.game;
+  if (!g || !['discussion', 'vote'].includes(g.currentPhase) || g.votingLocked) return false;
+  const voters = eligibleVoters();
+  if (!voters.length) return false;
+  const allLocked = voters.every(p => !!g.voteLocks?.[p.id]);
+  if (!allLocked && !force) return false;
+
+  let missingLaterVote = false;
+  if (force) {
+    voters.forEach(voter => {
+      if (g.voteLocks?.[voter.id]) return;
+      if (g.round > 1) {
+        const choices = activePlayers().filter(p => p.id !== voter.id);
+        const target = pick(choices.length ? choices : activePlayers());
+        if (target) {
+          g.votes[voter.id] = target.id;
+          voter.vote = target.id;
+        }
+        missingLaterVote = true;
+      }
+      g.voteLocks[voter.id] = true;
+    });
+  }
+
   g.votingLocked = true;
-  const voters = activePlayers();
-  if (!voters.length) return;
+  g.timerRunning = false;
+  g.timerDeadline = null;
+  g.timerExpiredHandled = true;
 
-  // In the adapted version, missing votes are abstentions rather than self-votes.
-  const entriesCount = {};
-  Object.values(g.votes).forEach(target => {
-    if (voters.some(p => p.id === target)) entriesCount[target] = (entriesCount[target] || 0) + 1;
-  });
-
-  // First-round skip: a majority may choose to skip the vote.
-  if (g.round === 1 && g.voteRound === 1 && !g.skipUsed) {
-    const skipCount = Object.values(g.skipChoices).filter(Boolean).length;
+  // A first-round majority may pass. A pass means no one is removed now and two must leave next round.
+  if (canSkipCurrentVote(g)) {
+    const skipCount = voters.filter(p => !!g.voteLocks?.[p.id] && !!g.skipChoices?.[p.id]).length;
     if (skipCount > voters.length / 2) {
       g.skipUsed = true;
-      g.currentRoundEliminationTarget = 2;
-      g.log.push('Большинство выбрало пропуск. В следующем раунде нужно исключить двух игроков.');
+      g.doubleVoteNext = true;
+      g.log.push(`Раунд ${g.round} пропущен большинством. В следующем раунде обязательно исключаются два игрока; повторно пропустить нельзя.`);
       beginNextRound();
-      return;
+      return true;
     }
   }
 
-  const entries = Object.entries(entriesCount).sort((a,b) => b[1] - a[1]);
-  if (!entries.length) {
-    g.votingLocked = true;
-    g.log.push('Голосов нет: никто не исключён. Раунд продолжается без автоматического само-голоса.');
+  const counts = {};
+  voters.forEach(voter => {
+    if (!g.voteLocks?.[voter.id] || g.skipChoices?.[voter.id]) return;
+    const target = g.votes?.[voter.id];
+    if (target && activePlayers().some(p => p.id === target)) counts[target] = (counts[target] || 0) + 1;
+  });
+  const hasVotes = Object.keys(counts).length > 0;
+
+  if (!hasVotes && canSkipCurrentVote(g)) {
+    g.skipUsed = true;
+    g.doubleVoteNext = true;
+    g.log.push(`Голосование раунда ${g.round} прошло без решения. Считается единственным пропуском; в следующем раунде нужно исключить двух игроков.`);
     beginNextRound();
-    return;
+    return true;
+  }
+  if (missingLaterVote) {
+    g.currentRoundEliminationTarget = 2;
+    g.log.push('Не все зафиксировали голос до конца таймера. Воздержание во втором и последующих раундах запрещено: выбран двойной кик.');
+  }
+  if (!hasVotes) {
+    const targets = shuffle(activePlayers()).slice(0, Math.min(2, activePlayers().length)).map(p => p.id);
+    g.log.push('Ни одного голоса не удалось получить: вместо воздержания срабатывает обязательное исключение двух игроков.');
+    g.currentRoundEliminationTarget = 2;
+    eliminatePlayers(targets);
+    return true;
   }
 
-  const top = entries[0][1];
-  const leaders = entries.filter(x => x[1] === top).map(x => x[0]);
-  const pct = top / voters.length;
-  const alreadyDefended = id => g.defendedThisRound.includes(id);
-
-  if (leaders.length === 1 && pct >= 0.70) {
-    eliminatePlayers([leaders[0]]);
-    return;
-  }
-
-  if (leaders.length === 1) {
-    const id = leaders[0];
-    if (!alreadyDefended(id)) {
-      g.defenseCandidates = [id];
-      g.defenseQueue = [id];
-      g.currentPhase = 'defense';
-      g.timeLeft = 30;
-      g.timerRunning = false;
-  g.timerDeadline = null;
-  g.timerExpiredHandled = false;
-      syncAndRender();
-      return;
-    }
-    // Candidate has already used their one defense in this round.
-    eliminatePlayers([id]);
-    return;
-  }
-
-  // Tie: every tied player gets one defense, then a revote.
-  const needDefense = leaders.filter(id => !alreadyDefended(id));
-  if (needDefense.length) {
-    g.defenseCandidates = leaders;
-    g.defenseQueue = needDefense;
-    g.currentPhase = 'defense';
-    g.timeLeft = 30;
-    g.timerRunning = false;
-  g.timerDeadline = null;
-  g.timerExpiredHandled = false;
-    syncAndRender();
-    return;
-  }
-
-  // Tie persisted after all tied candidates used their single defense.
-  if (g.round === 1) {
-    g.log.push('После оправданий голоса снова разделились поровну. Раунд завершается без исключения.');
-    beginNextRound();
-    return;
-  }
-
-  eliminatePlayers(leaders.slice(0, 2));
+  const targetCount = g.currentRoundEliminationTarget === 2 ? 2 : 1;
+  const ranked = shuffle(activePlayers()).sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0));
+  let removeIds = ranked.slice(0, Math.min(targetCount, ranked.length)).map(p => p.id);
+  // A locked first-round skip vote is an abstention when it does not reach a majority.
+  if (!removeIds.length) removeIds = shuffle(activePlayers()).slice(0, targetCount).map(p => p.id);
+  g.log.push(`${g.round === 1 ? 'Первое' : `Раунд ${g.round}`} голосование завершено. ${targetCount === 2 ? 'Исключаются два игрока.' : 'Исключается один игрок.'}`);
+  eliminatePlayers(removeIds);
+  return true;
 }
 
 function finishDefense() {
@@ -1152,73 +1193,44 @@ function finishDefense() {
   }
 }
 
-function startRevote() {
-  const g = state.game;
-  g.currentPhase = 'vote';
-  g.needsRevote = true;
-  g.votingLocked = false;
-  g.votes = {};
-  g.skipChoices = {};
-  g.voteRound += 1;
-  g.timeLeft = 120;
-  g.timerRunning = false;
-  g.timerDeadline = null;
-  g.timerExpiredHandled = false;
-  activePlayers().forEach(p => p.vote = null);
-  g.log.push('Повторное голосование: 2 минуты.');
-  syncAndRender();
-  autoVoteForBots(false);
-}
+function startRevote() { return beginDiscussion(); }
 
 function eliminatePlayers(ids) {
   const g = state.game;
-  const unique = [...new Set(ids)].filter(id => { const p = playerById(id); return p && !p.eliminated; });
-  if (!unique.length) return beginNextRound();
-  unique.slice(0, g.currentRoundEliminationTarget === 2 ? 2 : 1).forEach(id => {
+  const targetCount = g.currentRoundEliminationTarget === 2 ? 2 : 1;
+  const unique = [...new Set(ids)].filter(id => { const p = playerById(id); return p && !p.eliminated; }).slice(0, targetCount);
+  if (!unique.length) {
+    if (activePlayers().length <= Number(g.capacity || 0)) finishGame();
+    else beginNextRound();
+    return;
+  }
+  unique.forEach(id => {
     const p = playerById(id);
     if (!p) return;
     p.eliminated = true;
+    p.bunkered = false;
     p.connected = false;
+    p.ready = false;
     p.vote = null;
-    g.log.push(`${p.name} покидает временный лагерь.`);
-    g.eliminationsThisRound++;
+    delete g.votes[id];
+    delete g.voteLocks[id];
+    delete g.skipChoices[id];
+    g.log.push(`${p.name} исключён голосованием. Обсуждение и голосование завершены; оправданий и прощальной речи нет.`);
     if (state.myPlayerId === id) toast('Вы выбыли из лагеря.');
   });
-  g.farewellQueue = unique.slice(0, g.currentRoundEliminationTarget === 2 ? 2 : 1);
-  g.currentFarewellPlayerId = g.farewellQueue[0] || null;
-  beginFarewell();
-}
-
-function beginFarewell() {
-  const g = state.game;
-  if (!g.farewellQueue.length) return afterEliminations();
-  g.currentPhase = 'farewell';
-  g.currentFarewellPlayerId = g.farewellQueue[0];
-  g.timeLeft = 15;
-  g.timerRunning = false;
-  g.timerDeadline = null;
-  g.timerExpiredHandled = false;
-  g.log.push(`Прощальная речь: 15 секунд для ${playerById(g.currentFarewellPlayerId)?.name || 'игрока'}.`);
-  syncAndRender();
-}
-
-function finishFarewell() {
-  const g = state.game;
-  if (g.currentPhase !== 'farewell') return;
-  g.farewellQueue.shift();
-  if (g.farewellQueue.length) return beginFarewell();
+  g.farewellQueue = [];
   g.currentFarewellPlayerId = null;
+  g.eliminationsThisRound = unique.length;
   afterEliminations();
 }
 
+function beginFarewell() { return afterEliminations(); }
+function finishFarewell() { return afterEliminations(); }
+
 function afterEliminations() {
   const g = state.game;
-  if (activePlayers().length <= g.capacity) {
+  if (activePlayers().length <= Number(g.capacity || 0)) {
     finishGame();
-    return;
-  }
-  if (g.currentRoundEliminationTarget === 2 && g.eliminationsThisRound < 2) {
-    beginVote();
     return;
   }
   beginNextRound();
@@ -1226,20 +1238,17 @@ function afterEliminations() {
 
 function beginNextRound() {
   const g = state.game;
-  g.currentRoundEliminationTarget = (g.round === 1 && g.skipUsed) ? 2 : 1;
+  g.currentRoundEliminationTarget = g.doubleVoteNext ? 2 : 1;
+  g.doubleVoteNext = false;
   startRound(g.round + 1);
 }
 
 function skipVotingRoundOne() {
-  if (!state.isHost) return toast('Пропуск определяется большинством игроков.');
+  if (!state.isHost) return toast('Пропуск выбирается в ходе общего голосования.');
   const g = state.game;
-  if (g.round !== 1 || g.currentPhase !== 'vote' || g.voteRound !== 1) return toast('Пропуск доступен только в первом голосовании.');
-  const voters = activePlayers();
-  const skipCount = Object.values(g.skipChoices).filter(Boolean).length;
-  if (skipCount <= voters.length / 2) return toast('Для пропуска нужно больше половины голосов игроков.');
-  finishVote();
+  if (!canSkipCurrentVote(g)) return toast('Пропуск можно использовать только один раз до обязательного двойного исключения.');
+  return setSkipChoice(state.myPlayerId, true);
 }
-
 
 function finishGame() {
   const g = state.game;
@@ -1477,23 +1486,26 @@ function finalOutcome(g, report) {
   const score = Number(report.score || 0);
   const survived = !infection.outbreak && score >= 54 && !(unresolved >= 3 && score < 62);
   let lead;
-  if (infection.outbreak) lead = 'Один человек скрыл опасную инфекцию — и угроза оказалась сильнее стен бункера. Медицинских ресурсов и изоляции не хватило, чтобы защитить остальных.';
-  else if (!survived && score < 44) lead = 'Бункер не выдержал долгого испытания: нехватка ресурсов, слабая инфраструктура и пробелы в навыках сложились в цепочку проблем.';
-  else if (!survived) lead = 'Группа добралась до убежища, но запасов, рабочих систем и согласованности не хватило. Бункер стал отсрочкой, а не спасением.';
-  else if (score >= 76 && report.details.covered >= 4) lead = 'Вы выжили благодаря сочетанию специалистов: важные задачи закрывали разные люди, а сильные стороны команды дополняли друг друга.';
-  else if ((g.bunkerState?.resolvedProblems || []).length && unresolved === 0) lead = 'Вы выжили не благодаря одному герою, а потому что сумели разобрать проблемы бункера по ходу партии и применить нужные навыки в нужный момент.';
-  else lead = 'Вы выжили, используя доступные навыки, открытые сведения о катастрофе и возможности бункера. Команда не была идеальной, но её оказалось достаточно.';
+  if (infection.outbreak) lead = seededStoryPick(g, 'lead-outbreak', ['Человек скрыл опасную инфекцию, и она оказалась опаснее стен и замков: когда угроза стала очевидной, времени на изоляцию и лечение уже не хватило.', 'Один нераспознанный вовремя источник заражения изменил исход всей партии. Бункер выдержал внешнюю катастрофу, но не смог защитить людей друг от друга и от болезни.', 'Самой разрушительной угрозой оказалась та, которую нельзя было увидеть по ту сторону двери. Медицинские ресурсы и меры изоляции не успели остановить вспышку.']);
+  else if (!survived && score < 44) lead = seededStoryPick(g, 'lead-loss-low', ['Бункер не выдержал долгого испытания: нехватка ресурсов, неисправности и пробелы в навыках сложились в цепочку кризисов.', 'Убежище давало укрытие, но его системы постепенно сдавали одна за другой. Группе не хватило запасов и разных специалистов, чтобы остановить распад.', 'Сначала проблемы казались локальными, но слабые места усиливали друг друга. В итоге бункер потерял устойчивость раньше, чем внешняя опасность отступила.']);
+  else if (!survived) lead = seededStoryPick(g, 'lead-loss', ['Группа добралась до убежища, но запасов, исправных систем и согласованности не хватило: отсрочка не превратилась в спасение.', 'Бункер пережил первые удары, однако ежедневные трудности оказались сильнее. Ресурсы и взаимная поддержка не успели стать надёжной системой.', 'Даже укрытие с толстыми стенами не заменило воды, медицины, ремонта и общего плана. Группа не смогла удержать все эти условия одновременно.']);
+  else if (score >= 76 && report.details.covered >= 4) lead = seededStoryPick(g, 'lead-win-strong', ['Вы выжили благодаря специалистам, которые закрывали разные задачи и усиливали друг друга, а не пытались делать всё поодиночке.', 'Команда оказалась устойчивой: разные навыки превратились в взаимную страховку, а слабые места не успели перерасти в катастрофу.', 'Сильной стороной группы стала не отдельная суперспособность, а сочетание людей, которые могли обнаружить угрозу, справиться с ней и поддержать общий порядок.']);
+  else if ((g.bunkerState?.resolvedProblems || []).length && unresolved === 0) lead = seededStoryPick(g, 'lead-win-repairs', ['Выживание стало результатом конкретной работы: группа замечала неисправности, находила нужных специалистов и доводила решения до конца.', 'Бункер оказался неидеальным, но команда сумела последовательно закрыть его критические проблемы. Это и позволило дождаться более безопасного момента для выхода.', 'Вы выжили благодаря практической смекалке и последовательности: кризисы не исчезали сами, но группа находила людей и решения для каждого из них.']);
+  else lead = seededStoryPick(g, 'lead-win', ['Группа выжила без идеального состава: помогли навыки, открытые сведения о катастрофе и способность решать проблемы по мере появления.', 'В этой истории не было безошибочного плана. Были удачные решения, компромиссы и несколько сильных сторон, которых оказалось достаточно, чтобы пережить худшее.', 'Вы не закрыли все риски, но смогли удержать достаточно важных систем в рабочем состоянии. Иногда выживание начинается с умения вовремя сделать главное.']);
 
   const resolved = (g.bunkerState?.resolvedProblems || []).length;
   const parts = [];
   if (infection.threats?.length && !infection.outbreak) parts.push('Опасное заболевание удалось сдержать благодаря сочетанию медицинских навыков и условий бункера.');
   if (resolved > 0) parts.push('Специалисты устранили часть критических проблем бункера.');
   if (unresolved > 0) parts.push('Некоторые неисправности остались нерешёнными и продолжали угрожать группе.');
-  if (report.details.synergyReasons?.length >= 2) parts.push('Разные характеристики и профессии сработали в связке, а не по отдельности.');
+  if (report.details.synergyReasons?.length >= 2) parts.push(`В связке сработали: ${report.details.synergyReasons.slice(0, 4).join(', ')}.`);
   const twists = playerTwistStories(inBunkerPlayers());
   if (twists.length) parts.push(twists[0]);
   if (!parts.length) parts.push('Катастрофа раскрылась постепенно, и найденные факты помогли понять, с чем придётся жить дальше.');
-  return { survived, title: survived ? 'ВЫ ВЫЖИЛИ' : 'ВЫ ПОГИБЛИ', lead, support: parts.slice(0, 2).join(' '), twists, infection };
+  if (report.details?.bunkerProblemOutcomes?.some(item => item.resolved)) parts.push(`В финале специалисты смогли закрыть проблемы: ${report.details.bunkerProblemOutcomes.filter(item => item.resolved).slice(0, 2).map(item => `${item.title} — ${item.specialist}`).join('; ')}.`);
+  if (!survived && report.details?.reasons?.length) parts.push(`Главными уязвимостями стали: ${report.details.reasons.slice(0, 2).join('; ')}.`);
+  if (!parts.length) parts.push('Решающими оказались не только характеристики, но и то, насколько группа сумела распределить обязанности и ресурсы.');
+  return { survived, title: survived ? 'ВЫ ВЫЖИЛИ' : 'ВЫ ПОГИБЛИ', lead, support: parts.slice(0, 3).join(' '), twists, infection };
 }
 
 function calculateFinalReport() {
@@ -1686,7 +1698,7 @@ function calculateFinalReport() {
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
 function phaseLabel(g) {
-  return ({ lobby:'Лобби', turns:'Ходы и раскрытие', discussion:'Общее обсуждение', speeches:'Речи', vote:'Голосование', defense:'Оправдание', farewell:'Прощальная речь', final:'Финал' })[g.currentPhase] || g.currentPhase;
+  return ({ lobby:'Лобби', turns:'Ходы и раскрытие', discussion:'Обсуждение и голосование', speeches:'Обсуждение и голосование', vote:'Обсуждение и голосование', defense:'Обсуждение и голосование', farewell:'Обсуждение и голосование', final:'Финал' })[g.currentPhase] || g.currentPhase;
 }
 
 function startTimer(seconds) {
@@ -1728,11 +1740,11 @@ function refreshTimerDisplay() {
 
 function autoAdvanceTimerPhase() {
   const g = state.game;
-  if (g.currentPhase === 'discussion') beginSpeeches();
-  else if (g.currentPhase === 'speeches') nextSpeech();
+  if (g.currentPhase === 'turns') finishTurn();
+  else if (g.currentPhase === 'discussion' || g.currentPhase === 'vote') finishVote(true);
   else if (g.currentPhase === 'defense') finishDefense();
   else if (g.currentPhase === 'farewell') finishFarewell();
-  else if (g.currentPhase === 'vote') finishVote();
+  else if (g.currentPhase === 'speeches') beginDiscussion();
 }
 
 function clonePlain(value) {
@@ -1901,6 +1913,10 @@ function handleHostMessage(conn, msg) {
   }
   if (msg.action === 'skipChoice') {
     setSkipChoice(player.id, !!msg.enabled);
+    return;
+  }
+  if (msg.action === 'lockVote') {
+    lockVote(player.id);
     return;
   }
   // Host phase controls are local-only. A regular client cannot start timers,
@@ -2237,8 +2253,14 @@ function kickPlayer(playerId) {
     p.ready = false;
     p.bunkered = false;
     delete g.votes[p.id];
+    delete g.voteLocks[p.id];
     delete g.skipChoices[p.id];
-    Object.keys(g.votes || {}).forEach(voterId => { if (g.votes[voterId] === p.id) delete g.votes[voterId]; });
+    Object.keys(g.votes || {}).forEach(voterId => {
+      if (g.votes[voterId] === p.id) {
+        delete g.votes[voterId];
+        delete g.voteLocks[voterId]; // their locked selection is no longer valid
+      }
+    });
     g.defenseQueue = (g.defenseQueue || []).filter(id => id !== p.id);
     g.defenseCandidates = (g.defenseCandidates || []).filter(id => id !== p.id);
     g.defendedThisRound = (g.defendedThisRound || []).filter(id => id !== p.id);
@@ -2563,15 +2585,149 @@ function renderFinalWorldChronicle(g) {
     <p class="small">В открывшихся сведениях были учтены сценарные последствия, влияющие на оценку угроз и возможности группы.</p></section>`;
 }
 
-function finalEpilogue(g, outcome, survivors) {
-  const catastrophe = g.catastrophe?.title || 'катастрофа';
-  if (outcome.survived) {
-    const groupSize = survivors.length;
-    return `<p>Первые недели после ${esc(catastrophe.toLowerCase())} не были похожи на победный финал. Даже после того, как двери бункера закрылись, группе приходилось учиться жить по новому распорядку: проверять запасы, беречь силы и решать споры до того, как они превращались в настоящие конфликты. Маленькие привычки постепенно стали важнее громких обещаний.</p>
-      <p>Со временем ${groupSize} ${groupSize === 1 ? 'человек' : groupSize >= 2 && groupSize <= 4 ? 'человека' : 'человек'} нашли способ распределить работу так, чтобы каждый приносил пользу — иногда благодаря редкому навыку, иногда просто потому, что кто-то не забывал выключать свет и вести записи. Выживание не вернуло прежний мир, зато дало группе шанс построить свой.</p>`;
-  }
-  return `<p>Сначала никто не хотел признавать поражение. Любая неисправность казалась временной, каждый конфликт — последним, а запасы будто бы могли продержаться ещё хотя бы один день. Но после ${esc(catastrophe.toLowerCase())} мелкие ошибки складывались в цепочку, и у группы оставалось всё меньше возможностей исправить положение.</p>
-    <p>Последняя запись в журнале убежища получилась короткой и совсем не героической: что-то закончилось, кто-то не успел, кто-то слишком поздно заметил опасность. Бункер пережил первые удары внешнего мира, но не сумел удержать людей вместе и сохранить условия для жизни. За его дверью катастрофа продолжилась — уже без тех, кто надеялся переждать её внутри.</p>`;
+function seededStoryPick(g, key, choices) {
+  if (!choices?.length) return '';
+  const seed = `${g.storySeed || g.roomCode || 'bunker'}:${g.round || 0}:${key}`;
+  return choices[hashString(seed) % choices.length];
+}
+
+function postCatastropheRoleStory(g, player, wasBunkerSpecialist = false) {
+  const name = player.name;
+  const profession = String(player.cards?.profession?.value || 'человек без известной специализации');
+  const hobby = String(player.cards?.hobby?.value || '');
+  const fact = String(player.cards?.fact?.value || '');
+  const gear = String(player.cards?.largeGear?.value || '');
+  const backpack = String(player.cards?.backpack?.value || '');
+  const trait = String(player.cards?.trait?.value || '');
+  const detail = `${hobby} ${fact} ${gear} ${backpack} ${trait}`.toLocaleLowerCase('ru-RU');
+  const prof = profession.toLocaleLowerCase('ru-RU');
+  let roleText;
+  if (/врач|фельдшер|медсест|фармацевт|биолог|ветеринар/.test(prof)) roleText = seededStoryPick(g, `role-${name}-med`, [
+    'организовал первую полевую лечебницу и обучил соседей перевязкам, санитарии и распознаванию опасных симптомов',
+    'помог наладить сеть взаимопомощи: даже без прежних больниц люди снова знали, куда нести заболевшего и как не заразить остальных',
+    'оказался нужнее за пределами убежища, где приходилось лечить травмы, следить за водой и объяснять людям, почему профилактика важнее героизма'
+  ]);
+  else if (/инженер|механик|электрик|сантехник|строител|плотник|слесар|радиотехник/.test(prof)) roleText = seededStoryPick(g, `role-${name}-craft`, [
+    'восстанавливал генераторы, ручные насосы и простые инструменты — снаружи даже маленький ремонт часто отделял ночлег от беды',
+    'собрал из обломков рабочие конструкции и помогал поселениям ремонтировать крыши, печи и водосборники',
+    'стал человеком, которого звали, когда переставала работать важная вещь: старые устройства уже не выпускали, зато их можно было починить'
+  ]);
+  else if (/агроном|фермер|садовод|повар|рыбак|охотник|лесник/.test(prof)) roleText = seededStoryPick(g, `role-${name}-food`, [
+    'помог наладить выращивание и хранение еды, превращая случайные находки в устойчивый источник питания',
+    'научил соседей собирать урожай, сушить продукты и не терять половину запасов из-за сырости и вредителей',
+    'стал важной фигурой в первых поселениях: умение получить пищу из земли и правильно её сохранить оказалось почти валютой'
+  ]);
+  else if (/учител|психолог|переводчик|лингвист|журналист|актёр|ведущий|переговор/.test(prof)) roleText = seededStoryPick(g, `role-${name}-people`, [
+    'помогал соседним группам договариваться о правилах, обмене и безопасных маршрутах, пока недоверие не переросло в новый конфликт',
+    'обучал детей и взрослых полезным навыкам, а ещё умел объяснить сложное так, чтобы люди действительно слушали',
+    'сохранял связь между разрозненными общинами: договариваться, передавать новости и удерживать людей от паники оказалось не менее важно, чем чинить стены'
+  ]);
+  else if (/водител|курьер|логист|пилот|моряк/.test(prof) || /велосипед|карта|компас|рация|телескоп/.test(detail)) roleText = seededStoryPick(g, `role-${name}-route`, [
+    'разведывал маршруты и помогал доставлять грузы между поселениями, выбирая не самый короткий, а самый безопасный путь',
+    'организовал доставку воды, лекарств и инструментов: логистика оказалась тихой работой, от которой зависело слишком многое',
+    'стал проводником для людей, которые не знали, что осталось от старых дорог и где ещё можно пройти без риска'
+  ]);
+  else if (/программист|айти|сисадмин|кибербезопас|дизайнер|математик/.test(prof)) roleText = seededStoryPick(g, `role-${name}-systems`, [
+    'упорядочил записи, запасы и расписания так, чтобы небольшой лагерь перестал терять ресурсы из-за хаоса',
+    'помогал ремонтникам и торговцам учитывать обмен, планировать маршруты и не тратить редкие детали впустую',
+    'превратил разрозненные записи в понятную систему учёта: после катастрофы порядок в цифрах спасал не хуже хорошего инструмента'
+  ]);
+  else if (/коллекционер|музыкант|художник|геймер|блогер|стилист|парикмахер/.test(prof) || /музык|рисован|шить|вяз|ножниц|нит|космет|фотоаппарат/.test(detail)) roleText = seededStoryPick(g, `role-${name}-crafty`, [
+    'нашёл неожиданное применение своему увлечению: ремонтировал одежду, делал наглядные схемы и возвращал людям ощущение нормальной жизни',
+    'поддерживал моральный дух и помогал создавать вещи из того, что раньше считали мусором; после катастрофы практичная изобретательность ценилась больше названия профессии',
+    'стал незаменим в маленьких делах — починить одежду, придумать понятный знак, отвлечь детей и напомнить взрослым, что жизнь не сводится к очередному пайку'
+  ]);
+  else roleText = seededStoryPick(g, `role-${name}-general`, [
+    'нашёл себе место в новой общине: помогал с охраной, переноской запасов, устройством быта и работой, для которой не требовалось редкого диплома',
+    'поначалу казался человеком без незаменимого навыка, но оказался надёжным в повседневных задачах — а именно они не давали маленькому поселению развалиться',
+    'освоил новые обязанности уже после выхода: в мире без привычных служб способность учиться и доводить простые дела до конца стала отдельной профессией'
+  ]);
+  if (!wasBunkerSpecialist) roleText = `В бункере его профессия почти не понадобилась напрямую. После выхода ${roleText}.`;
+  else roleText = `После выхода ${roleText}.`;
+  return `<p><strong>${esc(name)}</strong> ${esc(roleText)}</p>`;
+}
+
+function finalEpilogue(g, outcome, survivors, report) {
+  const catastropheTitle = g.catastrophe?.title || 'катастрофы';
+  const cat = catastropheTitle.toLocaleLowerCase('ru-RU');
+  const details = report?.details || {};
+  const resolved = details.bunkerProblemOutcomes || [];
+  const specialists = new Set(resolved.filter(x => x.resolved).map(x => x.specialist));
+  const unresolvedNames = details.activeProblems || [];
+  const facts = details.catastropheFacts || [];
+  const synergy = details.synergyReasons || [];
+  const strong = Number(details.covered || 0) >= 4 || Number(details.strongCoverage || 0) >= 2;
+  const intro = outcome.survived
+    ? seededStoryPick(g, 'epilogue-win-intro', [
+      `После ${cat} мир не вернулся к прежнему порядку. Первые месяцы были похожи не на победу, а на длинную смену без выходных: вода, еда, лекарства, ремонт и решения, которые нельзя было отложить до завтра. Но теперь у группы было главное — время, чтобы научиться жить заново.`,
+      `Когда двери наконец открылись, снаружи не оказалось ни спасательной колонны, ни готового ответа, как жить дальше. После ${cat} приходилось заново определять, что считать домом, безопасностью и достаточным запасом. Зато группа вышла наружу не случайной толпой, а людьми, которые уже прошли через общие испытания.`,
+      `Выход из бункера не стал финальной сценой с музыкой и объятиями. После ${cat} впереди были пустые дороги, незнакомые угрозы и много тяжёлой работы. Выжившие поняли простую вещь: убежище спасло их не навсегда, а до того дня, когда они смогли попробовать спасти себя самостоятельно.`
+    ])
+    : seededStoryPick(g, 'epilogue-loss-intro', [
+      `После ${cat} не осталось удобного объяснения, которое можно было бы свести к одной ошибке. Бункер дал группе время, но время само по себе не чинит системы, не создаёт воду и не заставляет людей доверять друг другу. Когда запас прочности закончился, каждая незакрытая проблема потребовала свою цену.`,
+      `Последние дни после ${cat} проходили не как одна большая катастрофа, а как последовательность маленьких потерь. Сначала приходилось выбирать, что отключить; потом — чем пожертвовать; наконец — кого уже невозможно защитить. Бункер держался дольше, чем казалось возможным, но не смог заменить целый мир.`,
+      `В журнале убежища не нашлось красивой последней фразы. Там остались цифры запасов, список неисправностей и короткие записи о людях, пытавшихся исправить положение. После ${cat} группа оказалась перед задачей сложнее самого входа в бункер — сохранить работоспособную систему и не растерять людей по дороге.`
+    ]);
+
+  const synergyParagraph = strong && synergy.length
+    ? seededStoryPick(g, 'epilogue-synergy-strong', [
+      `Решающим преимуществом стала не одна профессия, а связка навыков: ${synergy.slice(0, 3).join(', ')}. Там, где один замечал проблему, другой мог устранить её, а третий — объяснить остальным, как не допустить повторения. Этот способ работать вместе пережил стены убежища.`,
+      `В итогах особенно заметны сочетания ${synergy.slice(0, 3).join(', ')}. Сами по себе эти навыки не гарантировали спасения, но вместе превратились в систему: обнаружить угрозу, оценить последствия, сделать работу и проверить результат. Внешний мир быстро показал, что именно такая цепочка действий нужна не меньше, чем в бункере.`,
+      `Группа выиграла время благодаря комбинациям ${synergy.slice(0, 3).join(', ')}. Это не выглядело как подвиг одного человека: скорее, несколько разных сильных сторон закрывали слабые места друг друга. После выхода такая взаимозаменяемость помогла распределять работу и не зависеть от единственного специалиста.`
+    ])
+    : synergy.length
+      ? `Некоторые связки — ${synergy.slice(0, 3).join(', ')} — оказались полезны, хотя группа не смогла объединить все сильные стороны в устойчивую систему. За пределами убежища это стало уроком: иметь специалистов мало, нужно ещё организовать совместную работу.`
+      : seededStoryPick(g, 'epilogue-synergy-thin', [
+        'У группы не сложилась одна очевидная комбинация навыков, которая закрывала бы всё сразу. Выжившие научились ценить не только яркие способности, но и готовность учиться, делиться инструментами и выполнять скучную ежедневную работу.',
+        'Внутри бункера способности участников не всегда встретились с правильной задачей. После выхода это изменилось: даже навык, который не помог починить конкретную систему, мог пригодиться в строительстве, торговле, обучении или обычной организации быта.',
+        'Команда не стала идеальным механизмом, и часть её возможностей так и не раскрылась в убежище. Но за его дверями возникали совершенно другие задачи — и прежние слабые места неожиданно могли превратиться в специализацию.'
+      ]);
+
+  let bunkerParagraph;
+  if (resolved.length && unresolvedNames.length === 0) bunkerParagraph = seededStoryPick(g, 'epilogue-bunker-perfect', [
+    `Все выявленные критические неисправности удалось закрыть. В памяти группы остались конкретные люди и решения: ${resolved.slice(0, 3).map(x => `${x.title} — ${x.specialist}`).join('; ')}. Эти эпизоды стали первым примером того, как проверять проблему, назначать ответственного и не считать работу законченной до проверки результата.`,
+    `Бункер выдержал не потому, что был безупречен: его слабые места нашли вовремя. ${resolved.slice(0, 3).map(x => `${x.specialist} помог разобраться с задачей «${x.title}»`).join('; ')}. После выхода группа продолжила действовать по тому же принципу — не скрывать неисправности и не ждать, пока небольшая поломка станет катастрофой.`
+  ]);
+  else if (resolved.length) bunkerParagraph = `Внутри убежища удалось решить часть задач: ${resolved.slice(0, 3).map(x => `${x.title} (${x.specialist})`).join('; ')}. Остались и нерешённые проблемы${unresolvedNames.length ? ` — ${unresolvedNames.slice(0, 3).join(', ')}` : ''}. Уже снаружи группа использовала этот опыт как список ошибок, которые нельзя повторять при устройстве нового лагеря.`;
+  else bunkerParagraph = seededStoryPick(g, 'epilogue-bunker-no-resolve', [
+    'Ни одна авария не получила простого финального решения. Это не означало, что в группе не было талантов: скорее, нужные навыки не совпали с проблемами или на решение не хватило времени, ресурсов и координации. Позже выжившие стали распределять обязанности заранее и проверять, кто отвечает за каждую систему.',
+    'Бункер оставил после себя перечень уроков: следить за мелкими поломками, записывать расход запасов и не рассчитывать, что один человек успеет всё. В новом поселении группа сперва делала именно это — училась предотвращать кризисы вместо того, чтобы героически тушить их последствия.',
+    'Даже неудачные попытки что-то исправить принесли пользу. Люди запомнили, какие решения не сработали, каких материалов не хватало и почему просьбы о помощи звучали слишком поздно. В новом лагере они начали с простого: осмотр, список задач, ответственные и запасной план.'
+  ]);
+
+  const discoveredParagraph = facts.length
+    ? seededStoryPick(g, 'epilogue-discoveries', [
+      `Раскрытые сведения о катастрофе — ${facts.slice(0, 2).map(f => f.title || f.text).join('; ')} — помогли понять, какие риски останутся и после выхода. Эти наблюдения передавали другим поселениям, чтобы следующие группы не повторяли путь вслепую.`,
+      `Найденные факты о внешнем мире (${facts.slice(0, 2).map(f => f.title || f.text).join('; ')}) стали чем-то вроде первой карты новой реальности. Даже неполные сведения ценились: они помогали выбирать маршруты, оценивать опасные зоны и объяснять, что нельзя считать безопасным только потому, что сегодня ничего не произошло.`
+    ])
+    : 'О мире снаружи было известно меньше, чем хотелось бы. Поэтому первые вылазки строились на наблюдении и осторожности: каждое возвращение приносило новую запись, а каждая запись делала следующий выход чуть менее слепым.';
+
+  const twistParagraph = outcome.twists?.length ? outcome.twists[0] : '';
+  const survivorsForOutside = survivors.length ? survivors : (g.players || []).filter(p => p.occupied !== false).slice(0, 3);
+  const outsideStories = outcome.survived
+    ? survivorsForOutside.slice(0, 3).map(player => postCatastropheRoleStory(g, player, specialists.has(player.name))).join('')
+    : '';
+  const missedPotential = !outcome.survived && survivorsForOutside.length
+    ? `<p>Некоторые способности могли пригодиться уже за дверями, если бы группа сумела выбраться: ${survivorsForOutside.slice(0, 3).map(player => `${esc(player.name)} — ${esc(String(player.cards?.profession?.value || 'неизвестная профессия'))}`).join('; ')}. У этих людей могли найтись полезные занятия в новом мире, но до этого этапа история группы не дошла.</p>`
+    : '';
+  const closing = outcome.survived
+    ? seededStoryPick(g, 'epilogue-win-close', [
+      'Через несколько лет группа перестала называть себя просто выжившими. Они построили место, где были правила, работа и возможность растить детей, спорить, чинить ошибки и начинать проекты. Старый мир не вернулся — но новый больше не казался пустым.',
+      'Постепенно к ним стали приходить другие люди. У группы появились мастерская, небольшой склад, огород и расписание дежурств. Это были скромные вещи, но именно из них складывалось будущее, которого поначалу никто не смел обещать.',
+      'Их поселение не стало легендой о безошибочных героях. Оно стало местом, где люди умели признавать промахи, учиться и помогать друг другу. После катастрофы такой порядок оказался редкостью — и потому имело смысл его защищать.'
+    ])
+    : seededStoryPick(g, 'epilogue-loss-close', [
+      'Эта история закончилась не потому, что у участников не было достоинств. Их навыки, привычки и опыт просто не сложились в достаточно надёжную систему до того, как запас времени иссяк. В других убежищах этот случай пересказывали как предупреждение: подготовка — это не список талантов, а работающий план.',
+      'Позднее другие группы нашли оставленные записи и восстановили часть событий. Они увидели не только ошибки, но и попытки помочь друг другу. Из этой истории сделали практические выводы: запасные решения, ясные обязанности и честный разговор об угрозах должны появляться до кризиса, а не после.',
+      'Внешний мир продолжился без них. Но записи о неисправностях, запасах и решениях могли стать уроком для тех, кто пришёл позже. Даже неудача оставляет шанс помочь следующим — если кто-то сумеет понять, что именно пошло не так.'
+    ]);
+
+  const paragraphs = [intro, synergyParagraph, bunkerParagraph, discoveredParagraph];
+  if (twistParagraph) paragraphs.push(twistParagraph);
+  if (outsideStories) paragraphs.push(outsideStories);
+  if (missedPotential) paragraphs.push(missedPotential);
+  paragraphs.push(closing);
+  return paragraphs.map(paragraph => paragraph.startsWith('<p>') ? paragraph : `<p>${esc(paragraph)}</p>`).join('');
 }
 
 function renderFinal() {
@@ -2609,7 +2765,7 @@ function renderFinal() {
       <p class="muted">${esc(g.catastrophe.desc)}</p>
       <p><strong>Убежище:</strong> ${esc(g.bunker.title)}. ${outcome.survived ? 'Оно стало домом для тех, кто сумел применить свои навыки и справиться с главными угрозами.' : 'Его стены не смогли компенсировать все опасности катастрофы и ошибки группы.'}</p>
       <p>${esc(synergyText)}</p>
-      ${finalEpilogue(g, outcome, survivors)}
+      ${finalEpilogue(g, outcome, survivors, r)}
     </section>
     <details class="panel final-details">
       <summary>Подробнее о судьбе группы</summary>
@@ -2704,6 +2860,7 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
         <div class="turn-progress"><span>Раскрыто в раунде</span><strong>${p?.revealsThisRound || 0}<i>/</i>${quota}</strong></div>
       </div>
       <div class="turn-guidance">${g.round === 1 ? 'Профессия уже открыта автоматически. Выберите оставшиеся характеристики своего хода.' : 'Откройте нужные характеристики в секции «Мои характеристики» ниже.'}</div>
+      ${p && remaining === 0 ? `<div class="turn-talking-timer"><span>${canAct ? 'Объясните' : 'Сейчас объясняет'} полезность для группы</span><strong class="timer">${formatTime(g.timeLeft)}</strong><p class="small">Три минуты на объяснение навыков и пользы для бункера. ${canAct ? 'Можно закончить раньше кнопкой ниже.' : 'Текущий игрок может закончить ход раньше.'}</p></div>` : ''}
       ${canAct ? `<div class="turn-active-note"><span class="status-pip"></span> Выбирайте карты прямо в своей колоде ниже. Осталось: <strong>${remaining}</strong></div>` : '<p class="muted turn-waiting">Карты откроются для выбора, когда наступит ваш ход.</p>'}
       <div class="turn-finish-action">
         <button class="btn finish-turn-btn ${canAct && p && (p.revealsThisRound || 0) >= quota ? 'is-ready' : ''}" onclick="uiFinishTurn()" ${canAct && p && (p.revealsThisRound || 0) >= quota ? '' : 'disabled'}>Закончить ход</button>
@@ -2711,11 +2868,8 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
       </div>
     </section>`;
   }
-  if (g.currentPhase === 'discussion') return `<section class="panel center"><div class="phase">Общее обсуждение</div><div class="timer">${formatTime(g.timeLeft)}</div><p class="muted">2 минуты общего обсуждения. Можно свободно обсуждать полезность персонажей.</p>${g.timerRunning ? '' : `<button class="btn primary" onclick="uiTimer(120)">Запустить 120 сек</button>`}</section>`;
-  if (g.currentPhase === 'speeches') {
-    const p = orderedActive()[g.currentSpeechIndex];
-    return `<section class="panel center"><div class="phase">Речь игрока</div><h2>${p ? esc(p.name) : '—'}</h2><div class="timer">${formatTime(g.timeLeft)}</div><p class="muted">30 секунд на обвинительную или оправдательную речь. Нераскрытые характеристики называть нельзя.</p></section>`;
-  }
+  if (g.currentPhase === 'discussion' || g.currentPhase === 'vote') return renderDiscussionAndVote(g, me);
+  if (g.currentPhase === 'speeches') return renderDiscussionAndVote(g, me);
   if (g.currentPhase === 'defense') {
     const p = playerById(g.defenseQueue[0]);
     return `<section class="panel center"><div class="phase">Оправдание</div><h2>${p ? esc(p.name) : '—'}</h2><div class="timer">${formatTime(g.timeLeft)}</div><p class="muted">30 секунд. Нельзя объявлять характеристики, которые ещё не были раскрыты.</p></section>`;
@@ -2724,23 +2878,31 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
     const p = playerById(g.currentFarewellPlayerId);
     return `<section class="panel center"><div class="phase">Прощальная речь</div><h2>${p ? esc(p.name) : '—'}</h2><div class="timer">${formatTime(g.timeLeft)}</div><p class="muted">15 секунд на прощание. После этого игрок окончательно покидает временный лагерь.</p></section>`;
   }
-  if (g.currentPhase === 'vote') {
-    const myVote = me?.vote || null;
-    const everyone = activePlayers();
-    const votedCount = Object.keys(g.votes || {}).filter(id => everyone.some(p => p.id === id && p.occupied && !p.eliminated)).length;
-    const eligibleCount = everyone.filter(p => p.occupied && !p.eliminated).length;
-    const allEligibleVoted = eligibleCount > 0 && votedCount >= eligibleCount;
-    const skipChoice = !!g.skipChoices?.[state.myPlayerId];
-    const skipAvailable = g.round === 1 && g.voteRound === 1 && !g.skipUsed;
-    return `<section class="panel"><div class="row space"><div><div class="phase">Голосование ${g.voteRound > 1 ? '(повторное)' : ''}</div><h2>Кого исключаем?</h2></div><div class="center"><div class="timer" style="font-size:34px">${formatTime(g.timeLeft)}</div></div></div>
-      <div class="notice success"><strong>2 минуты · живое голосование</strong><div class="small" style="margin-top:5px">Пока таймер идёт, можно обсуждать, защищаться и менять свой голос. Нераскрытые характеристики нельзя объявлять вслух. Нажатие «Завершить голосование» фиксирует результат.</div></div>
-      <div class="row space" style="margin:12px 0"><span class="small">Проголосовали: <strong>${votedCount}/${eligibleCount}</strong></span>${allEligibleVoted ? '<span class="small">Все участники с правом голоса проголосовали — можно завершить раньше.</span>' : ''}</div>
-      ${me && !me.eliminated ? `<div class="vote-grid">${everyone.map(p => `<label class="vote-option"><input type="radio" name="vote" value="${esc(p.id)}" ${myVote===p.id?'checked':''} onchange="uiVote('${p.id}')" /> <span>${esc(p.name)}${p.bot ? ' · бот' : ''}</span></label>`).join('')}</div>` : '<div class="notice">Вы уже выбыли из текущего состава.</div>'}
-      ${state.isHost && everyone.some(p => p.bot) ? `<div class="host-bot-votes"><h3>Решения за тестовых ботов</h3><p class="small">Выберите цель голосования для каждого бота или нажмите «Случайные голоса ботов» в панели хоста.</p>${everyone.filter(bot => bot.bot).map(bot => `<div class="host-bot-vote-row"><span>${esc(bot.name)}${g.votes?.[bot.id] ? ` · голос учтён` : ''}</span><select aria-label="За кого голосует ${esc(bot.name)}" onchange="uiBotVote('${bot.id}',this.value)"><option value="">${g.votes?.[bot.id] ? 'Изменить голос…' : 'Выберите игрока…'}</option>${everyone.filter(target => target.id !== bot.id).map(target => `<option value="${target.id}" ${g.votes?.[bot.id]===target.id?'selected':''}>${esc(target.name)}</option>`).join('')}</select>${skipAvailable ? `<label class="host-bot-skip"><input type="checkbox" ${g.skipChoices?.[bot.id]?'checked':''} onchange="uiBotSkipChoice('${bot.id}',this.checked)" /> Пропуск</label>` : ''}</div>`).join('')}${skipAvailable ? `<button class="btn" onclick="uiAutoSkipChoiceBots()">Случайный выбор пропуска для ботов</button>` : ''}</div>` : ''}
-      ${skipAvailable && me && !me.eliminated ? `<div class="vote-skip"><div><strong>Вариант первого раунда: пропуск</strong><div class="small">Если за пропуск наберётся больше половины игроков, никто не выбывает, а в следующем раунде исключаются два человека.</div></div><button class="btn ${skipChoice?'primary':''}" onclick="uiSkipChoice(${skipChoice?'false':'true'})">${skipChoice?'✓ Я за пропуск':'Я за пропуск'}</button></div>` : ''}
-    </section>`;
-  }
+  if (g.currentPhase === 'vote') return renderDiscussionAndVote(g, me);
   return '';
+}
+
+function renderDiscussionAndVote(g, me) {
+  const everyone = activePlayers();
+  const eligible = eligibleVoters();
+  const mine = me?.id || state.myPlayerId;
+  const locked = !!g.voteLocks?.[mine];
+  const myVote = g.votes?.[mine] || null;
+  const mySkip = !!g.skipChoices?.[mine] && canSkipCurrentVote(g);
+  const skipAvailable = canSkipCurrentVote(g);
+  const lockedCount = eligible.filter(p => g.voteLocks?.[p.id]).length;
+  const myCanLock = !locked && (myVote || mySkip);
+  const voteControls = me && !me.eliminated ? `
+    <div class="vote-grid">${everyone.map(p => `<label class="vote-option"><input type="radio" name="vote" value="${esc(p.id)}" ${myVote===p.id?'checked':''} ${locked?'disabled':''} onchange="uiVote('${p.id}')" /> <span>${esc(p.name)}${p.bot ? ' · бот' : ''}</span></label>`).join('')}</div>
+    <div class="vote-skip"><div><strong>Пропустить голосование</strong><div class="small">${skipAvailable ? 'Доступно только сейчас. Если за пропуск больше половины участников, никто не выбывает сейчас, но в следующем раунде обязательно выбывают двое.' : 'Пропуск доступен только в первом голосовании. Сейчас каждый обязан выбрать участника.'}</div></div><button class="btn ${mySkip?'primary':''}" ${locked || !skipAvailable?'disabled':''} onclick="uiSkipChoice(${mySkip?'false':'true'})">${mySkip?'✓ Выбрано: пропуск':'Выбрать пропуск'}</button></div>
+    <div class="row vote-lock-row"><button class="btn ${locked?'':'primary'}" onclick="uiLockVote()" ${locked || !myCanLock?'disabled':''}>${locked?'✓ Выбор зафиксирован':mySkip?'Зафиксировать пропуск':'Зафиксировать голос'}</button><span class="small">После фиксации изменить выбор нельзя.</span></div>` : '<div class="notice">Вы уже выбыли из текущего состава.</div>';
+  const botControls = state.isHost && everyone.some(p=>p.bot) ? `<div class="host-bot-votes"><h3>Тестовые боты</h3><p class="small">Боты голосуют автоматически. Для ручного тестирования можно изменить их выбор.</p>${everyone.filter(p=>p.bot).map(bot=>`<div class="host-bot-vote-row"><span>${esc(bot.name)}${g.voteLocks?.[bot.id]?' · зафиксировал':''}</span><select aria-label="За кого голосует ${esc(bot.name)}" onchange="uiBotVote('${bot.id}',this.value)"><option value="">Выбрать игрока…</option>${everyone.filter(target=>target.id!==bot.id).map(target=>`<option value="${target.id}" ${g.votes?.[bot.id]===target.id?'selected':''}>${esc(target.name)}</option>`).join('')}</select>${skipAvailable?`<label class="host-bot-skip"><input type="checkbox" ${g.skipChoices?.[bot.id]?'checked':''} onchange="uiBotSkipChoice('${bot.id}',this.checked)" /> Пропуск</label>`:''}</div>`).join('')}<button class="btn" onclick="uiRerollBotVotes()">Случайные голоса ботов</button>${skipAvailable?`<button class="btn" onclick="uiAutoSkipChoiceBots()">Случайный выбор пропуска для ботов</button>`:''}</div>` : '';
+  return `<section class="panel discussion-vote-panel">
+    <div class="row space discussion-vote-head"><div><div class="phase">Общее обсуждение и голосование</div><h2>${g.currentRoundEliminationTarget===2?'Обсудите и выберите двух для исключения':(skipAvailable?'Обсудите: исключить участника или один раз пропустить':'Обсудите и решите, кого исключить')}</h2></div><div class="center"><div class="timer">${formatTime(g.timeLeft)}</div><div class="small">осталось</div></div></div>
+    <div class="notice success"><strong>3 минуты на обсуждение</strong><p class="small">Обсуждайте пользу, навыки и синергию группы одновременно с голосованием. Вы можете менять голос до фиксации. Когда все зафиксируют выбор, исключение произойдёт сразу — без дополнительных оправданий и прощальных речей.</p></div>
+    <div class="row space vote-lock-status"><span class="small">Зафиксировали решение: <strong>${lockedCount}/${eligible.length}</strong></span><span class="small">${lockedCount===eligible.length?'Все решения зафиксированы.':''}</span></div>
+    ${voteControls}${botControls}
+  </section>`;
 }
 
 const CARD_SYMBOLS = {
@@ -2803,11 +2965,11 @@ function renderPlayerRow(p, viewer = null, forceReveal = false) {
 function hostControls(g, current) {
   let controls = '';
   if (g.currentPhase === 'turns') controls = `<button class="btn skip-turn-btn" onclick="uiHostFinishTurn()">Пропустить ход · открыть 2 случайные</button><p class="small">Только если игрок отошёл или пропускает ход. Для обычного завершения игрок использует кнопку «Закончить ход».</p>`;
-  else if (g.currentPhase === 'discussion') controls = `<div class="row"><button class="btn primary" onclick="uiTimer(120)">Старт 120 сек</button><button class="btn" onclick="uiSpeechesStart()">К речам</button></div>`;
-  else if (g.currentPhase === 'speeches') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiNextSpeech()">Следующий</button></div>`;
+  else if (g.currentPhase === 'discussion') controls = `<p class="small">Обсуждение и голосование идут одновременно. Таймер стартует автоматически; каждый игрок должен зафиксировать выбор.</p>${g.players.some(p => p.bot && !p.eliminated) ? `<button class="btn" onclick="uiRerollBotVotes()">Случайные голоса ботов</button>` : ''}`;
+  else if (g.currentPhase === 'speeches') controls = `<div class="row"><button class="btn primary" onclick="uiNextSpeech()">Перейти к обсуждению</button></div>`;
   else if (g.currentPhase === 'defense') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiFinishDefense()">Дальше</button></div>`;
   else if (g.currentPhase === 'farewell') controls = `<div class="row"><button class="btn" onclick="uiTimer(15)">15 сек</button><button class="btn primary" onclick="uiFinishFarewell()">Завершить речь</button></div>`;
-  else if (g.currentPhase === 'vote') controls = `<div class="row"><button class="btn" onclick="uiTimer(120)">2 минуты</button><button class="btn" onclick="uiRerollBotVotes()">Случайные голоса ботов</button><button class="btn primary" onclick="uiFinishVote()">Завершить голосование</button></div>`;
+  else if (g.currentPhase === 'vote') controls = `<div class="row"><button class="btn" onclick="uiFinishVote()">Принудительно завершить (тест)</button></div>`;
   const kickable = g.players.filter(p => !p.hostPlayer && !p.eliminated);
   const kickControl = kickable.length ? `<details class="host-kick-tools"><summary>Тест: удалить игрока</summary><p class="small">В лобби игрок удаляется из списка, во время игры немедленно выбывает без прощальной речи.</p><div class="host-kick-list">${kickable.map(p => `<div class="host-kick-row"><span>${esc(p.name)}${p.bot ? ' · бот' : ''}</span><button class="btn danger btn-sm" onclick="uiKickPlayer('${p.id}')">Удалить</button></div>`).join('')}</div></details>` : '';
   return `${controls}${kickControl}`;
@@ -2935,12 +3097,14 @@ window.uiFinishTurn = () => {
   if (state.isHost) finishTurn(); else sendToHost({ action:'finishTurn' });
 };
 window.uiVote = targetId => castVote(state.myPlayerId, targetId);
+window.uiLockVote = () => lockVote(state.myPlayerId);
 window.uiSkipChoice = enabled => setSkipChoice(state.myPlayerId, enabled);
 window.uiSkipVote = () => skipVotingRoundOne();
+window.uiBotVote = (botId, targetId) => hostBotVote(botId, targetId);
 window.uiTimer = seconds => { if (state.isHost) startTimer(seconds); else toast('Управление таймером доступно техническому хосту партии.'); };
 window.uiSpeechesStart = () => { if (state.isHost) beginSpeeches(); };
 window.uiNextSpeech = () => { if (state.isHost) nextSpeech(); };
-window.uiFinishVote = () => { if (state.isHost) finishVote(); };
+window.uiFinishVote = () => { if (state.isHost) finishVote(true); };
 window.uiFinishDefense = () => { if (state.isHost) finishDefense(); };
 window.uiFinishFarewell = () => { if (state.isHost) finishFarewell(); };
 window.uiStartGame = () => {

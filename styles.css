@@ -641,3 +641,32 @@ input:focus, select:focus { border-color: rgba(255,138,36,.7); box-shadow: 0 0 0
   .final-brief, .final-details { padding: 15px; }
   .final-outcome h1 { font-size: clamp(35px, 10vw, 52px); }
 }
+
+/* v7: speaker and combined discussion/vote flow */
+.turn-talking-timer {
+  margin: 16px 0 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(244, 196, 48, .42);
+  border-radius: 14px;
+  background: rgba(244, 196, 48, .07);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 16px;
+}
+.turn-talking-timer > span { font-weight: 800; }
+.turn-talking-timer .timer { font-size: 32px; color: var(--accent, #f4c430); }
+.turn-talking-timer .small { grid-column: 1 / -1; margin: 0; }
+.discussion-vote-panel { scroll-margin-top: 16px; }
+.discussion-vote-head { align-items: center; gap: 16px; }
+.discussion-vote-head .timer { font-size: clamp(34px, 6vw, 48px); }
+.vote-lock-status { margin: 14px 0 10px; }
+.vote-lock-row { align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.vote-lock-row .btn:disabled { opacity: .42; cursor: not-allowed; filter: grayscale(.8); }
+.vote-option input:disabled + span { opacity: .68; }
+@media (max-width: 520px) {
+  .turn-talking-timer { grid-template-columns: 1fr; }
+  .turn-talking-timer .timer { justify-self: start; }
+  .discussion-vote-head { align-items: flex-start; }
+  .discussion-vote-head .timer { font-size: 34px; }
+}
