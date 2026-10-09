@@ -60,7 +60,7 @@ test('online transport uses WebSockets instead of PeerJS/WebRTC',()=>{
   const index=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   assert(transport.includes('new WebSocket(socketUrl())'));
   assert(server.includes("pathname !== '/ws'"));
-  assert(index.includes('transport.js?v=20261009-bunker15'));
+  assert(index.includes('transport.js?v=20261009-bunker16'));
   assert(!index.includes('peerjs@'));
   assert(!transport.includes('RTCPeerConnection'));
 });

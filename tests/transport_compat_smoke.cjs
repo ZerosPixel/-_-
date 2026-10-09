@@ -58,7 +58,17 @@ function waitHttp() {
 
     clientConn.close();
     await once(hostConn, 'close');
-    console.log('PASS: browser transport shim interoperates with the WebSocket relay in both directions');
+
+    const stableHostToken = host._hostToken;
+    const oldSocketClosed = new Promise(resolve => host._socket.addEventListener('close', () => resolve(true), { once: true }));
+    host._socket.close();
+    await oldSocketClosed;
+    const hostReopened = once(host, 'open');
+    host.reconnect();
+    await hostReopened;
+    if (!stableHostToken || host._hostToken !== stableHostToken) throw new Error('Host token changed during reconnect');
+
+    console.log('PASS: browser transport relay, bidirectional data, and stable host identity across reconnect');
   } catch (error) {
     console.error('FAIL:', error?.stack || error);
     process.exitCode = 1;

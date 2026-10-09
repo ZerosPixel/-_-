@@ -31,6 +31,10 @@ class WebSocketConnection extends EventEmitter {
     if (this.readyState !== OPEN) throw new Error('WebSocket is not open');
     this._writeFrame(0x1, Buffer.from(String(value), 'utf8'));
   }
+  ping(payload = Buffer.alloc(0)) {
+    if (this.readyState !== OPEN) return;
+    this._writeFrame(0x9, Buffer.from(payload));
+  }
   close(code = 1000, reason = '') {
     if (this.readyState !== OPEN) return;
     const reasonBytes = Buffer.from(String(reason).slice(0, 120), 'utf8');
@@ -85,7 +89,7 @@ class WebSocketConnection extends EventEmitter {
         this.socket.end(); this._finishClose(); return;
       }
       if (opcode === 0x9) { this._writeFrame(0xA, payload); continue; }
-      if (opcode === 0xA) continue;
+      if (opcode === 0xA) { this.emit('pong', payload); continue; }
       if (opcode === 0x2) { this.close(1003, 'Binary messages are not supported'); return; }
       if (opcode === 0x1) {
         if (this.fragments.length) return this.close(1002, 'Unexpected data frame');
@@ -126,6 +130,8 @@ const hostsByRoom = new Map();
 const clientsById = new Map();
 const connections = new Map();
 const socketMeta = new WeakMap();
+const activeSockets = new Set();
+const HOST_STALE_AFTER_MS = 65000;
 
 function send(ws, object) {
   if (ws && ws.readyState === OPEN) {
@@ -157,7 +163,16 @@ function handleMessage(ws, message) {
   if (!message || typeof message !== 'object') return;
   const meta = socketMeta.get(ws);
   if (message.type === 'heartbeat') {
-    send(ws, { type: 'heartbeat-ack', at: message.at || Date.now() });
+    const now = Date.now();
+    ws.isAlive = true;
+    if (meta?.role === 'host') {
+      const room = hostsByRoom.get(meta.roomCode);
+      if (room?.ws === ws) room.lastSeenAt = now;
+    } else if (meta?.role === 'client' && clientsById.get(meta.peerId) === ws) {
+      // Helps health diagnostics and stale-client cleanup.
+      ws.lastSeenAt = now;
+    }
+    send(ws, { type: 'heartbeat-ack', at: message.at || now });
     return;
   }
   if (message.type === 'register-host') {
@@ -166,15 +181,26 @@ function handleMessage(ws, message) {
     if (!/^[A-Z0-9]{4,16}$/.test(roomCode) || peerId !== `bunker-${roomCode}`) {
       send(ws, { type: 'server-error', errorType: 'invalid-id', message: 'Invalid room code.' }); return;
     }
+    const hostToken = String(message.hostToken || '');
+    if (hostToken && !/^host-[a-z0-9-]{8,100}$/i.test(hostToken)) {
+      send(ws, { type: 'server-error', errorType: 'invalid-id', message: 'Invalid host session token.' }); return;
+    }
     const existing = hostsByRoom.get(roomCode);
-    if (existing?.ws?.readyState === OPEN && existing.ws !== ws) {
+    const hasDifferentLiveSocket = existing?.ws?.readyState === OPEN && existing.ws !== ws;
+    const sameHostSession = !!hostToken && !!existing?.hostToken && hostToken === existing.hostToken;
+    const staleLegacySession = hasDifferentLiveSocket && !existing?.hostToken &&
+      Date.now() - Number(existing.lastSeenAt || 0) > HOST_STALE_AFTER_MS;
+    if (hasDifferentLiveSocket && !sameHostSession && !staleLegacySession) {
       send(ws, { type: 'server-error', errorType: 'unavailable-id', message: 'Room code is already in use.' }); return;
     }
-    if (existing?.ws && existing.ws !== ws) {
-      try { existing.ws.close(4001, 'room host replaced'); } catch {}
-    }
-    hostsByRoom.set(roomCode, { ws, peerId });
+
+    // Swap the room mapping BEFORE closing the old socket. Its eventual close
+    // handler checks socket identity and therefore cannot delete the new host.
+    hostsByRoom.set(roomCode, { ws, peerId, hostToken: hostToken || null, lastSeenAt: Date.now() });
     socketMeta.set(ws, { role: 'host', roomCode, peerId });
+    if (hasDifferentLiveSocket) {
+      try { existing.ws.close(4001, 'host session reconnected'); } catch {}
+    }
     send(ws, { type: 'registered', peerId });
     return;
   }
@@ -232,7 +258,7 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   if (url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    res.end(JSON.stringify({ ok: true, service: 'bunker-websocket-relay', activeRooms: hostsByRoom.size, connectedClients: clientsById.size }));
+    res.end(JSON.stringify({ ok: true, service: 'bunker-websocket-relay', activeRooms: hostsByRoom.size, connectedClients: clientsById.size, activeSockets: activeSockets.size }));
     return;
   }
   let pathname;
@@ -258,16 +284,34 @@ server.on('upgrade', (req, socket, head) => {
   socket.write('HTTP/1.1 101 Switching Protocols\r\n' +
     'Upgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
   const ws = new WebSocketConnection(socket, head);
+  ws.isAlive = true;
+  ws.lastSeenAt = Date.now();
+  activeSockets.add(ws);
+  ws.on('pong', () => { ws.isAlive = true; ws.lastSeenAt = Date.now(); });
   ws.on('message', raw => {
     let message;
     try { message = JSON.parse(raw.toString('utf8')); } catch { send(ws, { type: 'server-error', errorType: 'bad-message', message: 'Invalid JSON message.' }); return; }
     try { handleMessage(ws, message); }
     catch (error) { console.error('Message handling error:', error); send(ws, { type: 'server-error', errorType: 'server-error', message: 'Server could not process the message.' }); }
   });
-  ws.on('close', () => cleanupSocket(ws));
-  ws.on('error', () => cleanupSocket(ws));
+  const finishSocket = () => { activeSockets.delete(ws); cleanupSocket(ws); };
+  ws.on('close', finishSocket);
+  ws.on('error', finishSocket);
 });
+
+// Detect half-open sockets (for example, a phone suspending its browser tab).
+// This also prevents a dead host connection from keeping a room registered forever.
+const socketHeartbeat = setInterval(() => {
+  for (const ws of activeSockets) {
+    if (ws.readyState !== OPEN) { activeSockets.delete(ws); continue; }
+    if (ws.isAlive === false) { ws.terminate(); activeSockets.delete(ws); continue; }
+    ws.isAlive = false;
+    try { ws.ping(); } catch { ws.terminate(); activeSockets.delete(ws); }
+  }
+}, 25000);
+socketHeartbeat.unref?.();
+
 server.listen(PORT, '0.0.0.0', () => console.log(`BUNKER server listening on ${PORT}`));
 
 // Test helpers are not exposed over HTTP; exported only when required from Node tests.
-module.exports = { server, hostsByRoom, clientsById, connections };
+module.exports = { server, hostsByRoom, clientsById, connections, activeSockets };

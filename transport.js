@@ -86,12 +86,16 @@
       this.id = id || randomId('client');
       this.options = options;
       this.isHost = /^bunker-[A-Z0-9]+$/i.test(this.id);
+      // Stable for this host instance across WebSocket reconnects. Lets the server
+      // distinguish a returning host from a different client reusing a room code.
+      this._hostToken = this.isHost ? randomId('host') : null;
       this.disconnected = false;
       this.destroyed = false;
       this.open = false;
       this.connections = new Map();
       this._socket = null;
       this._heartbeat = null;
+      this._lastHeartbeatAckAt = 0;
       this._everRegistered = false;
       this._manualClose = false;
       this._connectSocket();
@@ -112,14 +116,28 @@
       socket.addEventListener('open', () => {
         if (socket !== this._socket || this.destroyed) return;
         const message = this.isHost
-          ? { type: 'register-host', peerId: this.id, roomCode: this.id.slice('bunker-'.length).toUpperCase() }
+          ? { type: 'register-host', peerId: this.id, roomCode: this.id.slice('bunker-'.length).toUpperCase(), hostToken: this._hostToken }
           : { type: 'register-client', peerId: this.id };
         this._rawSend(message);
+        this._lastHeartbeatAckAt = Date.now();
         clearInterval(this._heartbeat);
         // Active WebSocket traffic prevents Render's free service from idling
         // while players are in the lobby/game. Browsers may throttle background timers.
         this._heartbeat = setInterval(() => {
-          if (socket === this._socket && socket.readyState === OPEN) this._rawSend({ type: 'heartbeat', at: Date.now() });
+          if (socket !== this._socket || socket.readyState !== OPEN) return;
+          // A socket can look OPEN after a mobile tab resumes even though the server
+          // disappeared. Reopen it if several heartbeat replies were missed.
+          if (Date.now() - this._lastHeartbeatAckAt > 65000) {
+            clearInterval(this._heartbeat);
+            this._heartbeat = null;
+            this.open = false;
+            this.disconnected = true;
+            for (const conn of [...this.connections.values()]) conn._closeRemote();
+            try { socket.close(4002, 'heartbeat timeout'); } catch {}
+            this._connectSocket();
+            return;
+          }
+          this._rawSend({ type: 'heartbeat', at: Date.now() });
         }, 20000);
       });
 
@@ -198,6 +216,7 @@
           this.emit('error', { type: message.errorType || 'peer-unavailable', message: message.message || 'Room is unavailable' });
           break;
         case 'heartbeat-ack':
+          this._lastHeartbeatAckAt = Date.now();
           break;
       }
     }

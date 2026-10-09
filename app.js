@@ -2026,14 +2026,14 @@ function createHost(name) {
   });
 }
 
-const MAX_AUTO_REJOIN = 10;
+const MAX_AUTO_REJOIN = 24;
 // Тихое автоподключение: пока хост ещё не открыл комнату или связь мигнула,
 // участник видит «подключаемся…», а не ошибку «нет связи / комната не найдена».
 function scheduleAutoRejoin() {
   if (state.isHost || state.mode === 'kicked' || !state.roomCode || !state.myName) return false;
   if (state.autoRejoinCount >= MAX_AUTO_REJOIN) return false;
   state.autoRejoinCount++;
-  const delay = Math.min(1500 * state.autoRejoinCount, 6000);
+  const delay = Math.min(1500 * state.autoRejoinCount, 8000);
   setBadge(`подключаемся к комнате ${state.roomCode}…`);
   clearTimeout(state.autoRejoinTimer);
   state.autoRejoinTimer = setTimeout(() => {
@@ -3238,7 +3238,7 @@ document.addEventListener('visibilitychange', () => {
     uiReconnect();
   }
 });
-// Reconnect PeerJS signaling if Android suspends it while the browser is backgrounded.
+// Reconnect the WebSocket room registration if a mobile browser suspends it while backgrounded.
 setInterval(() => {
   if (state.isHost && state.peer && !state.peer.destroyed && state.peer.disconnected) scheduleHostPeerReconnect();
 }, 12000);

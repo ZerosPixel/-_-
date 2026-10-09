@@ -42,12 +42,13 @@ async function waitHealth() {
   const child = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     env: { ...process.env, PORT: String(PORT) }, stdio: 'ignore'
   });
-  let host, client;
+  let host, client, intruder, replacement, reconnectClient;
   try {
     await waitHealth();
     host = await connect();
     const hostRegistered = waitFor(host, m => m.type === 'registered');
-    host.send(JSON.stringify({ type: 'register-host', peerId: 'bunker-SMOKE123', roomCode: 'SMOKE123' }));
+    const hostToken = 'host-smoketest-session-token-12345';
+    host.send(JSON.stringify({ type: 'register-host', peerId: 'bunker-SMOKE123', roomCode: 'SMOKE123', hostToken }));
     if ((await hostRegistered).peerId !== 'bunker-SMOKE123') throw new Error('Host registration failed');
 
     client = await connect();
@@ -75,15 +76,44 @@ async function waitHealth() {
     client.send(JSON.stringify({ type: 'close-connection', connId }));
     await closed;
 
+    // A different host session must not take over the room.
+    const intruder = await connect();
+    const intruderError = waitFor(intruder, m => m.type === 'server-error');
+    intruder.send(JSON.stringify({ type: 'register-host', peerId: 'bunker-SMOKE123', roomCode: 'SMOKE123', hostToken: 'host-a-different-session-token' }));
+    if ((await intruderError).errorType !== 'unavailable-id') throw new Error('A different session incorrectly took the room');
+    intruder.close();
+
+    // The same host session may reclaim its room if a previous socket is stale.
+    const replacement = await connect();
+    const oldHostClosed = new Promise(resolve => host.addEventListener('close', () => resolve(true), { once: true }));
+    const replacementRegistered = waitFor(replacement, m => m.type === 'registered');
+    replacement.send(JSON.stringify({ type: 'register-host', peerId: 'bunker-SMOKE123', roomCode: 'SMOKE123', hostToken }));
+    if ((await replacementRegistered).peerId !== 'bunker-SMOKE123') throw new Error('Returning host could not reclaim the room');
+    await Promise.race([oldHostClosed, new Promise((_, reject) => setTimeout(() => reject(new Error('Old host socket was not closed after takeover')), 1000))]);
+
+    // Cleanup from the old socket must not delete the replacement room mapping.
+    const reconnectClient = await connect();
+    const reconnectClientRegistered = waitFor(reconnectClient, m => m.type === 'registered');
+    reconnectClient.send(JSON.stringify({ type: 'register-client', peerId: 'client-reconnecttest123456' }));
+    await reconnectClientRegistered;
+    const replacementIncoming = waitFor(replacement, m => m.type === 'incoming');
+    const replacementOpen = waitFor(reconnectClient, m => m.type === 'connection-open');
+    reconnectClient.send(JSON.stringify({ type: 'connect', targetId: 'bunker-SMOKE123', connId: 'conn-reconnecttest123456' }));
+    await replacementIncoming; await replacementOpen;
+    reconnectClient.close(); replacement.close();
+
     const health = await fetch(`${BASE}/health`).then(r => r.json());
     if (health.ok !== true) throw new Error('Health check failed');
-    console.log('PASS: WebSocket host/client registration, join handshake, bidirectional relay, heartbeat and close');
+    console.log('PASS: WebSocket relay, heartbeat, same-session host recovery, busy-room protection and stale-socket cleanup');
   } catch (error) {
     console.error('FAIL:', error.message);
     process.exitCode = 1;
   } finally {
     try { client?.close(); } catch {}
     try { host?.close(); } catch {}
+    try { intruder?.close(); } catch {}
+    try { replacement?.close(); } catch {}
+    try { reconnectClient?.close(); } catch {}
     child.kill('SIGTERM');
   }
 })();

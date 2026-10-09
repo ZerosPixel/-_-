@@ -1,5 +1,5 @@
 {
-  "version": "v10",
+  "version": "v11",
   "result": "PASS",
   "tests": [
     {
@@ -16,6 +16,15 @@
       ]
     },
     {
+      "name": "Host reconnection / busy room recovery",
+      "passed": true,
+      "checks": [
+        "same host token reclaims room",
+        "different host token rejected while room is active",
+        "old socket cleanup does not delete replacement room registration"
+      ]
+    },
+    {
       "name": "Browser transport API compatibility",
       "passed": true,
       "checks": [
@@ -23,13 +32,15 @@
         "Peer open events",
         "incoming DataConnection event",
         "bidirectional data exchange",
-        "remote close propagation"
+        "remote close propagation",
+        "same host token retained during reconnect"
       ]
     }
   ],
   "limitations": [
     "Not deployed to a public Render URL during this test",
     "Not tested on physical iPhone, Android, or desktop browsers",
-    "The host tab continues to hold authoritative game state"
+    "The host tab continues to hold authoritative game state",
+    "Render Free can restart or spin down during extended inactivity; client recovery is best-effort"
   ]
 }
