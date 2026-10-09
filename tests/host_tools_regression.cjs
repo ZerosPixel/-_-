@@ -36,7 +36,7 @@ const sandbox = {
   prompt: ()=>{},
   confirm: ()=>true
 };
-const src = fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8') + `\n;globalThis.__t = {state, RTC_CONFIG, DECK, CARD_TYPES, CARD_NAMES, BUNKER_EVENTS, createGame, assignUniqueItemCards, returnToLobby, beginVote, beginDiscussion, lockVote, castVote, setSkipChoice, canSkipCurrentVote, revealCard, finishTurn, handleHostJoinLobby, handleHostMessage, fillTestBots, addTestBot, removeTestBots, startRound, hostForceFinishTurn, resolveBunkerProblemsAtFinal, calculateFinalReport, kickPlayer, autoVoteForBots, hostBotVote, finishGame, activePlayers, currentTurnPlayer, revealQuota, playerDomainProfile, analyzeInfectionRisk, finalOutcome, finalEpilogue, renderFinal, startTimer, stopTimer, refreshTimerDisplay, beginSpeeches, nextSpeech, playerTwistStories, hostBotSkipChoice, autoSkipChoiceForBots, finishVote, rerollBotVotes, renderPhase, renderBunkerPanel, describeBunkerSituation, describeCatastrophePressure};`;
+const src = fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8') + `\n;globalThis.__t = {state, DECK, CARD_TYPES, CARD_NAMES, BUNKER_EVENTS, createGame, assignUniqueItemCards, returnToLobby, beginVote, beginDiscussion, lockVote, castVote, setSkipChoice, canSkipCurrentVote, revealCard, finishTurn, handleHostJoinLobby, handleHostMessage, fillTestBots, addTestBot, removeTestBots, startRound, hostForceFinishTurn, resolveBunkerProblemsAtFinal, calculateFinalReport, kickPlayer, autoVoteForBots, hostBotVote, finishGame, activePlayers, currentTurnPlayer, revealQuota, playerDomainProfile, analyzeInfectionRisk, finalOutcome, finalEpilogue, renderFinal, startTimer, stopTimer, refreshTimerDisplay, beginSpeeches, nextSpeech, playerTwistStories, hostBotSkipChoice, autoSkipChoiceForBots, finishVote, rerollBotVotes, renderPhase, renderBunkerPanel, describeBunkerSituation, describeCatastrophePressure};`;
 vm.createContext(sandbox);
 vm.runInContext(src, sandbox, {timeout:5000});
 const t = sandbox.__t;
@@ -54,10 +54,15 @@ function resetGame(n=6) {
   t.state.myPlayerId=t.state.game.players[0].id;
   t.state.game.capacity=Math.floor(n/2);
 }
-test('PeerJS connection config includes multiple STUN discovery options',()=>{
-  assert(t.RTC_CONFIG.iceServers.length>=3);
-  assert(t.RTC_CONFIG.iceServers.every(server=>typeof server.urls==='string'&&server.urls.startsWith('stun:')));
-  assert.equal(t.RTC_CONFIG.iceCandidatePoolSize,4);
+test('online transport uses WebSockets instead of PeerJS/WebRTC',()=>{
+  const transport=fs.readFileSync(path.join(__dirname,'..','transport.js'),'utf8');
+  const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+  const index=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+  assert(transport.includes('new WebSocket(socketUrl())'));
+  assert(server.includes("pathname !== '/ws'"));
+  assert(index.includes('transport.js?v=20261009-bunker15'));
+  assert(!index.includes('peerjs@'));
+  assert(!transport.includes('RTCPeerConnection'));
 });
 
 test('Bunker resources and systems render as narrative prose, not metric tiles or progress bars',()=>{

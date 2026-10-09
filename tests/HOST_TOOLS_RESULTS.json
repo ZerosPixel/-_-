@@ -3,7 +3,7 @@
   "total": 41,
   "tests": [
     {
-      "name": "PeerJS connection config includes multiple STUN discovery options",
+      "name": "online transport uses WebSockets instead of PeerJS/WebRTC",
       "ok": true
     },
     {

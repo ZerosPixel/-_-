@@ -1,0 +1,35 @@
+{
+  "version": "v10",
+  "result": "PASS",
+  "tests": [
+    {
+      "name": "WebSocket relay integration",
+      "passed": true,
+      "checks": [
+        "host registration",
+        "client registration",
+        "room join handshake",
+        "host-to-client message relay",
+        "client-to-host message relay",
+        "heartbeat acknowledgement",
+        "connection close notification"
+      ]
+    },
+    {
+      "name": "Browser transport API compatibility",
+      "passed": true,
+      "checks": [
+        "transport.js loaded in Node runtime",
+        "Peer open events",
+        "incoming DataConnection event",
+        "bidirectional data exchange",
+        "remote close propagation"
+      ]
+    }
+  ],
+  "limitations": [
+    "Not deployed to a public Render URL during this test",
+    "Not tested on physical iPhone, Android, or desktop browsers",
+    "The host tab continues to hold authoritative game state"
+  ]
+}

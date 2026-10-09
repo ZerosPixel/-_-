@@ -8,12 +8,7 @@ const BADGE = document.getElementById('connectionBadge');
 const TOAST = document.getElementById('toast');
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = 15;
-const RTC_CONFIG = { iceServers: [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun.cloudflare.com:3478' },
-  { urls: 'stun:global.stun.twilio.com:3478' }
-], iceCandidatePoolSize: 4 };
+// Сетевой транспорт находится в transport.js и работает через WebSocket-сервер.
 
 const CARD_TYPES = [
   ['biology', 'Пол / возраст'],
@@ -313,6 +308,8 @@ const state = {
   pendingRevealRequests: new Map(),
   reconnectInProgress: false,
   signalingRetryCount: 0,
+  autoRejoinCount: 0,
+  autoRejoinTimer: null,
   keepScreenAwake: false,
   hostToolsOpen: false,
   wakeLock: null,
@@ -1842,10 +1839,18 @@ function attachHostConnection(conn) {
     const playerId = conn.metadata?.playerId;
     const p = playerId ? playerById(playerId) : null;
     if (p && p.peerId === conn.peer) {
-      p.connected = false;
-      p.ready = false;
-      p.peerId = null;
-      state.game?.log?.push(`${p.name} потерял соединение.`);
+      // Льготный период: мобильный браузер часто рвёт канал на секунды и тут же
+      // переподключается — не показываем «нет связи», пока игрок не пропал надолго.
+      const lostPeerId = conn.peer;
+      setTimeout(() => {
+        if (!state.isHost || !state.game || p.peerId !== lostPeerId) return;
+        p.connected = false;
+        p.ready = false;
+        p.peerId = null;
+        state.game?.log?.push(`${p.name} потерял соединение.`);
+        syncAndRender();
+      }, 15000);
+      return;
     }
     if (state.game && state.isHost) syncAndRender();
   });
@@ -1981,7 +1986,7 @@ function createHost(name) {
   state.roomCode = makeRoomCode();
   state.hostId = `bunker-${state.roomCode}`;
   rememberName(name);
-  const peer = new Peer(state.hostId, { debug: 1, config: RTC_CONFIG });
+  const peer = new Peer(state.hostId, { debug: 1 });
   state.peer = peer;
   setBadge('создаём комнату…');
   peer.on('open', () => {
@@ -2021,6 +2026,25 @@ function createHost(name) {
   });
 }
 
+const MAX_AUTO_REJOIN = 10;
+// Тихое автоподключение: пока хост ещё не открыл комнату или связь мигнула,
+// участник видит «подключаемся…», а не ошибку «нет связи / комната не найдена».
+function scheduleAutoRejoin() {
+  if (state.isHost || state.mode === 'kicked' || !state.roomCode || !state.myName) return false;
+  if (state.autoRejoinCount >= MAX_AUTO_REJOIN) return false;
+  state.autoRejoinCount++;
+  const delay = Math.min(1500 * state.autoRejoinCount, 6000);
+  setBadge(`подключаемся к комнате ${state.roomCode}…`);
+  clearTimeout(state.autoRejoinTimer);
+  state.autoRejoinTimer = setTimeout(() => {
+    state.autoRejoinTimer = null;
+    if (state.isHost || state.mode === 'kicked') return;
+    state.joinBusy = false;
+    joinRoom(state.roomCode, state.myName);
+  }, delay);
+  return true;
+}
+
 function joinRoom(roomCode, name) {
   if (!roomCode || state.joinBusy) return;
   if (typeof Peer !== 'function') {
@@ -2049,12 +2073,23 @@ function joinRoom(roomCode, name) {
   render();
   closeClientPeer();
 
-  const peer = new Peer(undefined, { debug: 1, config: RTC_CONFIG });
+  const peer = new Peer(undefined, { debug: 1 });
   state.peer = peer;
   const attemptIsCurrent = () => attempt === state.joinAttemptId && state.peer === peer;
   const failAttempt = message => {
     if (!attemptIsCurrent()) return;
     clearJoinTimeout();
+    if (scheduleAutoRejoin()) {
+      try { state.pendingHost?.close(); } catch {}
+      try { peer.destroy(); } catch {}
+      state.pendingHost = null;
+      state.peer = null;
+      state.joinBusy = true;
+      state.joinError = '';
+      state.connectionLost = false;
+      render();
+      return;
+    }
     state.joinBusy = false;
     state.joinError = message || 'Не удалось получить состояние комнаты. Попробуйте подключиться ещё раз.';
     state.connectionLost = true;
@@ -2084,9 +2119,15 @@ function joinRoom(roomCode, name) {
     conn.on('close', () => {
       if (!attemptIsCurrent() || state.mode === 'kicked') return;
       clearJoinTimeout();
+      state.pendingHost = null;
+      if (scheduleAutoRejoin()) {
+        state.joinBusy = true;
+        state.connectionLost = false;
+        render();
+        return;
+      }
       state.connectionLost = true;
       state.joinBusy = false;
-      state.pendingHost = null;
       setBadge('нет связи с комнатой');
       toast('Связь с хостом потеряна. Можно переподключиться.');
       render();
@@ -2177,6 +2218,7 @@ function handleClientMessage(msg, attempt = state.joinAttemptId) {
     const game = msg.game;
     if (!game || !Array.isArray(game.players) || !game.currentPhase || !game.status) return;
     if (!state.myPlayerId || !game.players.some(p => p.id === state.myPlayerId)) return;
+    state.autoRejoinCount = 0;
     const sequence = Number(game.stateSeq) || 0;
     if (sequence && sequence <= state.lastStateSeq) {
       try { state.pendingHost?.send({ action: 'stateAck', sequence: state.lastStateSeq, sessionId: state.joinSessionId }); } catch {}
@@ -2438,7 +2480,7 @@ function renderLobby() {
           ${g.players.filter(p => p.occupied).map(p=>`<div class="player lobby-player">
             <div class="avatar">${playerAvatar(p)}</div>
             <div><strong>${esc(p.name)}</strong><div class="small">${p.hostPlayer ? 'создатель комнаты' : p.bot ? 'тестовый бот · локальный участник' : p.connected ? (p.ready ? 'синхронизирован' : 'получает состояние') : 'нет связи'}</div></div>
-            <div class="lobby-actions">${p.connected && p.ready ? `<span class="online-pill"><span></span>готов</span>` : `<span class="small">${p.connected ? 'синхронизация' : 'офлайн'}</span>`}${state.isHost && !p.hostPlayer ? `<button class="btn danger btn-icon" title="Удалить из комнаты" aria-label="Удалить ${esc(p.name)}" onclick="uiKickPlayer('${p.id}')">×</button>` : ''}</div>
+            <div class="lobby-actions">${p.connected && p.ready ? `<span class="online-pill"><span></span>готов</span>` : `<span class="small">${p.connected ? 'синхронизация' : 'переподключается…'}</span>`}${state.isHost && !p.hostPlayer ? `<button class="btn danger btn-icon" title="Удалить из комнаты" aria-label="Удалить ${esc(p.name)}" onclick="uiKickPlayer('${p.id}')">×</button>` : ''}</div>
           </div>`).join('')}
         </div>
         ${registered === 0 ? '<p class="muted">Пока нет зарегистрированных участников.</p>' : ''}
@@ -2956,7 +2998,7 @@ function renderPlayerCard(type, p, viewer, forceReveal = false) {
 }
 
 function renderPlayerRow(p, viewer = null, forceReveal = false) {
-  const status = p.eliminated ? 'Выбыл' : p.bunkered ? 'В бункере' : p.bot ? 'Тестовый бот' : p.connected ? 'В лагере' : 'Нет связи';
+  const status = p.eliminated ? 'Выбыл' : p.bunkered ? 'В бункере' : p.bot ? 'Тестовый бот' : p.connected ? 'В лагере' : 'Переподключается';
   const statusClass = p.eliminated ? 'is-out' : p.bunkered ? 'is-safe' : p.connected ? 'is-online' : 'is-offline';
   const isMine = viewer?.id === p.id;
   return `<article class="player-board-card ${isMine ? 'player-board-me' : ''} ${p.eliminated ? 'player-board-out' : ''}">
@@ -3074,11 +3116,14 @@ window.uiCreate = () => {
 };
 window.uiJoin = () => {
   if (state.joinBusy) return;
+  state.autoRejoinCount = 0;
   const name = document.getElementById('joinName')?.value || '';
   if (!name.trim()) return toast('Введите имя.');
   joinRoom(getRoomFromUrl(), name);
 };
 window.uiReconnect = () => {
+  state.autoRejoinCount = 0;
+  clearTimeout(state.autoRejoinTimer);
   const room = getRoomFromUrl() || state.roomCode;
   if (!room) return toast('Ссылка на комнату потеряна.');
   const name = document.getElementById('joinName')?.value || state.myName || savedName();
@@ -3165,7 +3210,7 @@ window.uiLeaveRoom = () => {
   const url = new URL(location.href);
   url.search = '';
   history.replaceState(null, '', url);
-  setBadge('не подключено');
+  setBadge('готово к игре');
   render();
 };
 

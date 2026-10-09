@@ -1,0 +1,15 @@
+{
+  "name": "bunker-online",
+  "version": "10.0.0",
+  "private": true,
+  "description": "Бункер — браузерная игра с WebSocket-сервером комнат",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test:logic": "node tests/host_tools_regression.cjs",
+    "test:outcomes": "node tests/final_outcome_simulation.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
