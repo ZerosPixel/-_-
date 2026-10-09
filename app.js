@@ -53,7 +53,13 @@ const DECK = {
     ['Говорит прямо и буквально — переговоры иногда звучат неожиданно', { team: -0.5, skill: 0.5 }],
     ['Обладает странным чувством юмора и разряжает самые мрачные споры', { team: 1 }],
     ['Не умеет вовремя остановиться и превращает любой спор в дебаты', { team: -1 }],
-    ['С виду паникёр, но в настоящем кризисе действует удивительно спокойно', { team: 1, risk: 1 }]
+    ['С виду паникёр, но в настоящем кризисе действует удивительно спокойно', { team: 1, risk: 1 }],
+    ['Всегда комментирует происходящее как спортивный матч', { team: 0 }],
+    ['Даёт бытовым предметам имена и всерьёз к ним обращается', { team: 0 }],
+    ['Уверен, что любая проблему можно решить таблицей в Excel', { skill: 0.2, team: -0.2 }],
+    ['Может спорить с инструкцией, даже когда читает её впервые', { tech: 0, team: -0.3 }],
+    ['Ведёт список своих списков и иногда теряет главный', { skill: 0.1 }],
+    ['Постоянно говорит «я же говорил», даже если ничего не говорил', { team: -0.4 }]
   ],
   profession: [
     ['Врач-терапевт', { med: 4, food: 0, tech: 0 }], ['Инженер', { tech: 4 }],
@@ -91,7 +97,14 @@ const DECK = {
     ['Бокс: реакция, дисциплина и привычка держать удар', { body: 2, risk: 1 }],
     ['Радиолюбительские эксперименты, которые иногда заканчиваются дымом', { tech: 1, risk: -1 }],
     ['Наблюдение за птицами и следами животных', { env: 2 }],
-    ['Постоянно разбирает бытовую технику «просто посмотреть»', { tech: 1, craft: 1 }]
+    ['Постоянно разбирает бытовую технику «просто посмотреть»', { tech: 1, craft: 1 }],
+    ['Коллекционирование крышечек от бутылок', { skill: 0 }],
+    ['Смотрит обзоры еды, но готовить не любит', { food: 0 }],
+    ['Собирает пазлы, но всегда теряет последний кусочек', { skill: 0.1 }],
+    ['Знает наизусть заставки старых мультсериалов', { team: 0 }],
+    ['Делает фигурки из чеков и обёрток', { craft: 0.1 }],
+    ['Собирает мемы про любую жизненную ситуацию', { team: 0.1 }],
+    ['Может двадцать минут выбирать название для папки', { skill: 0 }]
   ],
   fear: [
     ['Боится темноты', { risk: -1 }], ['Боится высоты', { risk: -1 }], ['Боится открытой воды', { risk: -1 }],
@@ -103,14 +116,65 @@ const DECK = {
     ['Компактный водяной фильтр', { water: 3 }], ['Набор для выращивания рассады', { food: 2 }],
     ['Медицинский набор', { med: 2 }], ['Печь для небольшого помещения', { heat: 2 }],
     ['Швейная машинка с ручным приводом', { craft: 2 }], ['Рация', { comms: 2 }],
-    ['Комплект туристического снаряжения', { body: 1, env: 1 }], ['Набор для ремонта сантехники', { water: 2, tech: 1 }]
+    ['Комплект туристического снаряжения', { body: 1, env: 1 }], ['Набор для ремонта сантехники', { water: 2, tech: 1 }],
+    ['Кот в переноске с видом нового начальника бункера', { team: 0.4, food: -0.3 }],
+    ['Велосипед с погнутым крылом и одной передачей', { body: 0.3 }],
+    ['Электрогитара без усилителя', { team: 0.2 }], ['Караоке-микрофон с вечным эхом', { team: 0.2 }],
+    ['Ростовой костюм динозавра', {}], ['Гигантская плюшевая капибара', {}],
+    ['Диско-шар с набором гирлянд', {}], ['Складной стол для настольного тенниса без сетки', {}],
+    ['Половина стола для настольного тенниса', {}], ['Манекен из магазина одежды', {}],
+    ['Картонная фигура неизвестного актёра в натуральную величину', {}], ['Портативный фонтан для кошек, но без насоса', {}],
+    ['Сломанный торговый автомат без ключа', {}], ['Принтер без чернил и кабеля питания', { tech: -0.1 }],
+    ['Пустой чемодан с наклейками из аэропортов', {}], ['Коробка из 5000 деталей пазла', { team: 0.1 }],
+    ['Мешок разноцветных пластиковых крышек', {}], ['Надувной матрас с медленной утечкой воздуха', {}],
+    ['Металлоискатель без батареек', {}], ['Детский надувной бассейн', {}],
+    ['Громоздкая кофемашина без капсул', { tech: -0.1 }], ['Снегоуборочная лопата с блёстками', { body: 0.2 }],
+    ['Коробка шурупов, гаек и непонятных металлических деталей', { craft: 0.2 }],
+    ['Игровая приставка без контроллеров и экрана', {}], ['Большой плакат «Сотрудник месяца» без фотографии', {}],
+    ['Ручная пишущая машинка с лентой неизвестного возраста', { skill: 0.1 }],
+    ['Скелет учебный, который пугает всех в темноте', { team: -0.1 }],
+    ['Телевизор с кинескопом и только одним каналом помех', {}],
+    ['Чемодан старых настольных игр с неполными комплектами', { team: 0.1 }],
+    ['Пустая клетка для попугая', {}], ['Декоративный меч из мягкого пластика', {}],
+    ['Палатка для пляжа с рекламой майонеза', { env: 0.1 }], ['Пылесос с полной пылью и без мешка', { tech: -0.1 }],
+    ['Огромная коробка воздушно-пузырчатой плёнки', { team: 0.1 }],
+    ['Набор для мыльных пузырей промышленного размера', {}],
+    ['Колесо обозрения для настольной игры — почти метр в диаметре', {}],
+    ['Три пустые канистры с надписью «резерв»', {}],
+    ['Стенд с дорожными знаками для автошколы', { skill: 0.1 }],
+    ['Портативный проектор со сломанной линзой', { tech: -0.1 }]
   ],
   backpack: [
     ['Фонарь', { tech: 1 }], ['Мультитул', { tech: 1, craft: 1 }], ['Компас', { env: 1 }],
     ['Верёвка и карабины', { body: 1, env: 1 }], ['Блокнот и карандаши', { skill: 1 }],
     ['Запас батареек', { tech: 1 }], ['Термокружка', { food: 0 }], ['Аптечка', { med: 1 }],
     ['Полевой фильтр для воды', { water: 2 }], ['Сухой продовольственный паёк', { food: 1 }],
-    ['Складной нож для бытовых работ', { craft: 1 }], ['Набор семян', { food: 2 }]
+    ['Складной нож для бытовых работ', { craft: 1 }], ['Набор семян', { food: 2 }],
+    ['Пачка чипсов со вкусом краба', { food: 0.1 }], ['Резиновая уточка', {}],
+    ['Один носок без пары', {}], ['Шоколадка с истёкшим сроком годности', { food: -0.1 }],
+    ['Тринадцать случайных зарядных кабелей, но ни одного подходящего', {}],
+    ['Пакет пуговиц неизвестного назначения', {}], ['Камень, очень похожий на картошку', {}],
+    ['Рулон туалетной бумаги с праздничным рисунком', {}], ['Пустая пластиковая бутылка', {}],
+    ['Одна левая перчатка', {}], ['Накладные усы на липучке', { team: 0.1 }],
+    ['Билет на концерт, который прошёл три года назад', {}], ['Ключ от неизвестной двери', {}],
+    ['Четырнадцать ручек без единого листа бумаги', {}], ['Набор наклеек с улыбающимися овощами', {}],
+    ['Детский зонтик размером с ладонь', {}], ['Бутылочка острого соуса', { food: 0.1 }],
+    ['Батарейки, которые уже разрядились', {}], ['Три детали конструктора разных наборов', {}],
+    ['Книга «Выживи в любой ситуации» с вырванными страницами', { skill: 0.1 }],
+    ['Колода карт с одной лишней дамой', { team: 0.1 }], ['Кубик Рубика, собранный только с одной стороны', {}],
+    ['Пакет воздушно-пузырчатой плёнки — уже весь лопнутый', {}], ['Пластиковая вилка', {}],
+    ['Чек на покупку арбуза', {}], ['Записка «не забудь!» без объяснений', {}],
+    ['Коробка для яиц с одним подозрительным яйцом', { food: -0.1 }],
+    ['Пустой кошелёк с фотографией незнакомой собаки', {}], ['Один пакетик приправы для лапши', { food: 0.1 }],
+    ['Миниатюрная губная гармошка', { team: 0.1 }], ['USB-вентилятор без подходящего кабеля', {}],
+    ['Пять бумажных колпачков для дня рождения', {}], ['Брелок в виде баклажана', {}],
+    ['Пачка салфеток с утятами', {}], ['Сломанная рулетка на 30 сантиметров', {}],
+    ['Пакетик сухого корма для кота, которого нет', { food: 0.1 }],
+    ['Сувенирный магнит «Я люблю этот город»', {}], ['Маленький блокнот, в котором написано только «потом»', {}],
+    ['Пластиковая медаль за участие', {}], ['Семь одинаковых колпачков от зубной пасты', {}],
+    ['Крошечный фонарик с почти севшей батарейкой', { tech: 0.1 }],
+    ['Пакетик сахара из кафе', { food: 0.1 }], ['Карманная расчёска с тремя зубцами', {}],
+    ['Нераспечатанный набор карточек для фокусов', { team: 0.1 }]
   ],
   fact: [
     ['Умеет заготавливать продукты на долгий срок', { food: 2 }], ['Знает основы автономной энергетики', { tech: 2 }],
@@ -124,7 +188,12 @@ const DECK = {
     ['Однажды спас целую смену благодаря вниманию к мелочам', { skill: 2, team: 1 }],
     ['Скрывает, что его уволили за катастрофическую ошибку', { skill: -1, team: -1 }],
     ['Может объяснить сложную вещь простыми словами', { skill: 2, team: 1 }],
-    ['Выжил неделю в лесу, но забыл выключить воду у себя дома', { env: 2, tech: -0.5 }]
+    ['Выжил неделю в лесу, но забыл выключить воду у себя дома', { env: 2, tech: -0.5 }],
+    ['Когда-то выиграл спор о названии оттенка бежевого', { skill: 0 }],
+    ['Знает пароль от старого Wi-Fi, но больше ничего о нём', { tech: 0 }],
+    ['Сохраняет все чеки, но не помнит зачем', { skill: 0.1 }],
+    ['Однажды стал местным мемом из-за неудачного танца', { team: 0.1 }],
+    ['Может определить марку лапши по звуку открываемой пачки', { food: 0.1 }]
   ],
   extra: [
     ['Умеет экономно расходовать воду', { water: 2 }], ['Уверенно чинит простые механизмы', { tech: 2 }],
@@ -362,6 +431,22 @@ function makeCharacter() {
   const cards = {};
   for (const [type] of CARD_TYPES) cards[type] = createDeckCard(type);
   return cards;
+}
+
+// Вещи раздаются независимо от профессии и без повторов внутри одной партии.
+// Колоды намеренно длиннее максимального состава комнаты (15 игроков).
+function assignUniqueItemCards(players) {
+  const roster = (players || []).filter(Boolean);
+  for (const type of ['largeGear', 'backpack']) {
+    const items = shuffle(DECK[type]);
+    roster.forEach((player, index) => {
+      const entry = items[index];
+      if (!entry) return;
+      player.cards ||= {};
+      player.cards[type] = { type, value: entry[0], mods: { ...(entry[1] || {}) } };
+    });
+  }
+  return roster;
 }
 
 function makePlayers(names, hostPlayerId, total) {
@@ -634,6 +719,7 @@ function addTestBot() {
   bot.clientId = null;
   bot.hostPlayer = false;
   state.game.players.push(bot);
+  assignUniqueItemCards(state.game.players);
   state.game.log.push(`Хост добавил тестового участника ${bot.name}.`);
   syncAndRender();
   return true;
@@ -646,6 +732,7 @@ function fillTestBots() {
     bot.slot = state.game.players.length + 1; bot.bot = true; bot.connected = true; bot.ready = true; bot.peerId = null; bot.clientId = null; bot.hostPlayer = false;
     state.game.players.push(bot);
   }
+  assignUniqueItemCards(state.game.players);
   syncAndRender();
   toast(`Тестовая компания подготовлена: ${state.game.players.length} участников.`);
 }
@@ -660,12 +747,12 @@ function hostBotVote(botId, targetId) {
   if (!bot?.bot || bot.eliminated) return;
   castVote(bot.id, targetId);
 }
-function autoVoteForBots() {
-  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return;
+function autoVoteForBots(showToast = true) {
+  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return false;
   const g = state.game;
   const eligible = activePlayers();
   const bots = eligible.filter(p => p.bot && !Object.prototype.hasOwnProperty.call(g.votes, p.id));
-  if (!eligible.length || !bots.length) return toast('Нет ботов, которым нужно проголосовать.');
+  if (!eligible.length || !bots.length) { if (showToast) toast('Нет ботов, которым нужно проголосовать.'); return false; }
   bots.forEach(bot => {
     const choices = eligible.filter(p => p.id !== bot.id);
     const target = pick(choices.length ? choices : eligible);
@@ -676,6 +763,18 @@ function autoVoteForBots() {
   syncAndRender();
   const allVoted = eligible.every(p => Object.prototype.hasOwnProperty.call(g.votes, p.id));
   if (allVoted) finishVote();
+  if (showToast) toast(`Случайные голоса добавлены: ${bots.length}.`);
+  return true;
+}
+
+function rerollBotVotes() {
+  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return false;
+  const bots = activePlayers().filter(player => player.bot);
+  if (!bots.length) return toast('В голосовании нет активных ботов.'), false;
+  bots.forEach(bot => { delete state.game.votes[bot.id]; bot.vote = null; });
+  const changed = autoVoteForBots(false);
+  if (changed) toast('Голоса ботов случайно перераспределены.');
+  return changed;
 }
 
 function hostBotSkipChoice(botId, enabled) {
@@ -704,6 +803,7 @@ function createGame(settings, names, hostPlayerIdx = null) {
   const cat = pick(CATASTROPHES);
   const bunker = pick(BUNKERS);
   const players = makePlayers(names, hostPlayerIdx, settings.playerCount);
+  assignUniqueItemCards(players);
   return {
     version: 2,
     status: 'lobby',
@@ -920,6 +1020,7 @@ function beginVote() {
   activePlayers().forEach(p => p.vote = null);
   g.log.push(g.voteRound === 1 ? 'Голосование началось: 2 минуты, голоса можно менять.' : 'Началось повторное голосование: 2 минуты.');
   syncAndRender();
+  autoVoteForBots(false);
 }
 
 function setSkipChoice(voterId, enabled) {
@@ -1066,6 +1167,7 @@ function startRevote() {
   activePlayers().forEach(p => p.vote = null);
   g.log.push('Повторное голосование: 2 минуты.');
   syncAndRender();
+  autoVoteForBots(false);
 }
 
 function eliminatePlayers(ids) {
@@ -1149,6 +1251,62 @@ function finishGame() {
   g.finalReport = calculateFinalReport();
   g.log.push('Бункер заполнен. Финальный результат готов.');
   syncAndRender();
+}
+
+function returnToLobby() {
+  if (!state.isHost || !state.game || state.game.status !== 'finished') {
+    if (!state.isHost) toast('Вернуть комнату в лобби может создатель.');
+    return false;
+  }
+  const previous = state.game;
+  const retained = previous.players.filter(player => {
+    if (player.bot || player.hostPlayer) return true;
+    const conn = player.peerId ? state.connections.get(player.peerId) : null;
+    return !!(conn && conn.open);
+  });
+  if (!retained.some(player => player.hostPlayer)) {
+    toast('Не удалось найти создателя комнаты.');
+    return false;
+  }
+  const hostIndex = retained.findIndex(player => player.hostPlayer);
+  const fresh = createGame({ playerCount: retained.length }, retained.map(player => player.name), hostIndex);
+  // Snapshot sequence must stay monotonic so connected clients accept the lobby reset.
+  fresh.stateSeq = Number(previous.stateSeq) || 0;
+  fresh.players = fresh.players.map((resetPlayer, index) => {
+    const oldPlayer = retained[index];
+    resetPlayer.id = oldPlayer.id; // IDs must remain stable for already-open peer connections.
+    resetPlayer.slot = index + 1;
+    resetPlayer.clientId = oldPlayer.clientId || null;
+    resetPlayer.peerId = oldPlayer.peerId || null;
+    resetPlayer.hostPlayer = !!oldPlayer.hostPlayer;
+    resetPlayer.bot = !!oldPlayer.bot;
+    resetPlayer.connected = true;
+    resetPlayer.ready = !!oldPlayer.hostPlayer || !!oldPlayer.bot;
+    resetPlayer.occupied = true;
+    resetPlayer.eliminated = false;
+    resetPlayer.bunkered = false;
+    resetPlayer.revealed = [];
+    resetPlayer.lastRevealRound = -1;
+    resetPlayer.revealsThisRound = 0;
+    resetPlayer.mutedNextSpeech = false;
+    resetPlayer.vote = null;
+    resetPlayer.speechDone = false;
+    return resetPlayer;
+  });
+  assignUniqueItemCards(fresh.players);
+  fresh.settings.playerCount = fresh.players.length;
+  fresh.capacity = 0;
+  fresh.bunkerState = createBunkerState(fresh.bunker, 0);
+  fresh.roomTitle = makeRoomTitle(fresh.catastrophe, fresh.bunker);
+  fresh.log = [`Предыдущая партия завершена. В лобби вернулись ${fresh.players.length} участников с сохранёнными подключениями.`];
+  state.game = fresh;
+  state.mode = 'lobby';
+  state.myPlayerId = fresh.players.find(player => player.hostPlayer)?.id || state.myPlayerId;
+  state.connectionLost = false;
+  setBadge(`комната ${state.roomCode} · лобби`, true);
+  syncAndRender();
+  toast('Лобби готово. Игроки и подключения сохранены — можно начинать новую партию.');
+  return true;
 }
 
 function valueOfCard(type) {
@@ -2036,6 +2194,7 @@ function handleHostJoinLobby(conn, msg) {
     target = makePlayers([name], null, 1)[0];
     target.slot = Math.max(0, ...state.game.players.map(p => Number(p.slot) || 0)) + 1;
     state.game.players.push(target);
+    assignUniqueItemCards(state.game.players);
   }
 
   target.name = name;
@@ -2404,6 +2563,17 @@ function renderFinalWorldChronicle(g) {
     <p class="small">В открывшихся сведениях были учтены сценарные последствия, влияющие на оценку угроз и возможности группы.</p></section>`;
 }
 
+function finalEpilogue(g, outcome, survivors) {
+  const catastrophe = g.catastrophe?.title || 'катастрофа';
+  if (outcome.survived) {
+    const groupSize = survivors.length;
+    return `<p>Первые недели после ${esc(catastrophe.toLowerCase())} не были похожи на победный финал. Даже после того, как двери бункера закрылись, группе приходилось учиться жить по новому распорядку: проверять запасы, беречь силы и решать споры до того, как они превращались в настоящие конфликты. Маленькие привычки постепенно стали важнее громких обещаний.</p>
+      <p>Со временем ${groupSize} ${groupSize === 1 ? 'человек' : groupSize >= 2 && groupSize <= 4 ? 'человека' : 'человек'} нашли способ распределить работу так, чтобы каждый приносил пользу — иногда благодаря редкому навыку, иногда просто потому, что кто-то не забывал выключать свет и вести записи. Выживание не вернуло прежний мир, зато дало группе шанс построить свой.</p>`;
+  }
+  return `<p>Сначала никто не хотел признавать поражение. Любая неисправность казалась временной, каждый конфликт — последним, а запасы будто бы могли продержаться ещё хотя бы один день. Но после ${esc(catastrophe.toLowerCase())} мелкие ошибки складывались в цепочку, и у группы оставалось всё меньше возможностей исправить положение.</p>
+    <p>Последняя запись в журнале убежища получилась короткой и совсем не героической: что-то закончилось, кто-то не успел, кто-то слишком поздно заметил опасность. Бункер пережил первые удары внешнего мира, но не сумел удержать людей вместе и сохранить условия для жизни. За его дверью катастрофа продолжилась — уже без тех, кто надеялся переждать её внутри.</p>`;
+}
+
 function renderFinal() {
   const g = state.game;
   const r = g.finalReport || calculateFinalReport();
@@ -2439,6 +2609,7 @@ function renderFinal() {
       <p class="muted">${esc(g.catastrophe.desc)}</p>
       <p><strong>Убежище:</strong> ${esc(g.bunker.title)}. ${outcome.survived ? 'Оно стало домом для тех, кто сумел применить свои навыки и справиться с главными угрозами.' : 'Его стены не смогли компенсировать все опасности катастрофы и ошибки группы.'}</p>
       <p>${esc(synergyText)}</p>
+      ${finalEpilogue(g, outcome, survivors)}
     </section>
     <details class="panel final-details">
       <summary>Подробнее о судьбе группы</summary>
@@ -2452,6 +2623,9 @@ function renderFinal() {
         <section class="panel final-detail-panel final-board-panel"><h2>Все раскрытые характеристики</h2><div class="players-board">${g.players.map(p => renderPlayerRow(p, null, true)).join('')}</div></section>
       </div>
     </details>
+    <section class="final-actions panel">
+      ${state.isHost ? '<p class="muted">Все участники, чьи подключения ещё открыты, смогут перейти в новое лобби вместе с вами.</p><button class="btn primary btn-lg" onclick="uiReturnToLobby()">Вернуться в лобби с игроками</button>' : '<p class="muted">Чтобы начать следующую партию, дождитесь, пока создатель комнаты вернёт подключённых игроков в лобби.</p>'}
+    </section>
   `;
 }
 
@@ -2629,7 +2803,7 @@ function hostControls(g, current) {
   else if (g.currentPhase === 'speeches') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiNextSpeech()">Следующий</button></div>`;
   else if (g.currentPhase === 'defense') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiFinishDefense()">Дальше</button></div>`;
   else if (g.currentPhase === 'farewell') controls = `<div class="row"><button class="btn" onclick="uiTimer(15)">15 сек</button><button class="btn primary" onclick="uiFinishFarewell()">Завершить речь</button></div>`;
-  else if (g.currentPhase === 'vote') controls = `<div class="row"><button class="btn" onclick="uiTimer(120)">2 минуты</button><button class="btn" onclick="uiAutoVoteBots()">Случайные голоса ботов</button><button class="btn primary" onclick="uiFinishVote()">Завершить голосование</button></div>`;
+  else if (g.currentPhase === 'vote') controls = `<div class="row"><button class="btn" onclick="uiTimer(120)">2 минуты</button><button class="btn" onclick="uiRerollBotVotes()">Случайные голоса ботов</button><button class="btn primary" onclick="uiFinishVote()">Завершить голосование</button></div>`;
   const kickable = g.players.filter(p => !p.hostPlayer && !p.eliminated);
   const kickControl = kickable.length ? `<details class="host-kick-tools"><summary>Тест: удалить игрока</summary><p class="small">В лобби игрок удаляется из списка, во время игры немедленно выбывает без прощальной речи.</p><div class="host-kick-list">${kickable.map(p => `<div class="host-kick-row"><span>${esc(p.name)}${p.bot ? ' · бот' : ''}</span><button class="btn danger btn-sm" onclick="uiKickPlayer('${p.id}')">Удалить</button></div>`).join('')}</div></details>` : '';
   return `${controls}${kickControl}`;
@@ -2672,10 +2846,12 @@ window.uiFillBots = () => fillTestBots();
 window.uiClearBots = () => removeTestBots();
 window.uiBotVote = (botId, targetId) => { if (targetId) hostBotVote(botId, targetId); };
 window.uiAutoVoteBots = () => autoVoteForBots();
+window.uiRerollBotVotes = () => rerollBotVotes();
 window.uiBotSkipChoice = (botId, enabled) => hostBotSkipChoice(botId, enabled);
 window.uiAutoSkipChoiceBots = () => autoSkipChoiceForBots();
 window.uiHostFinishTurn = () => hostForceFinishTurn();
 window.uiKickPlayer = playerId => kickPlayer(playerId);
+window.uiReturnToLobby = () => returnToLobby();
 window.uiToggleWakeLock = async () => {
   state.keepScreenAwake = !state.keepScreenAwake;
   if (!state.keepScreenAwake) {
