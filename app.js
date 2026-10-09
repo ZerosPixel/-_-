@@ -53,7 +53,10 @@ const DECK = {
     ['Ветеринар', { med: 2, food: 2 }], ['Швея', { craft: 3 }], ['Водитель', { tech: 2, body: 1 }],
     ['Программист', { tech: 2 }], ['Геолог', { env: 3, body: 1 }], ['Учитель', { team: 2, skill: 1 }],
     ['Радиолюбитель', { tech: 3, comms: 1 }], ['Лесник', { food: 2, env: 3, body: 1 }],
-    ['Слесарь', { tech: 3, body: 1 }], ['Фармацевт', { med: 3 }], ['Плотник', { tech: 2, craft: 2, body: 1 }]
+    ['Слесарь', { tech: 3, body: 1 }], ['Фармацевт', { med: 3 }], ['Плотник', { tech: 2, craft: 2, body: 1 }],
+    ['Кладовщик продовольственного склада', { food: 2, skill: 2 }], ['Фасовщик пищевого производства', { food: 2, craft: 1 }],
+    ['Лингвист-переводчик', { team: 1, skill: 3 }], ['Учитель английского языка', { team: 1, skill: 2 }],
+    ['Сантехник', { tech: 2, water: 2, craft: 1 }], ['Специалист по пищевой безопасности', { food: 2, med: 1 }]
   ],
   health: [
     ['Здоров, серьёзных ограничений нет', { health: 2 }], ['Лёгкая сезонная аллергия', { health: 1 }],
@@ -137,37 +140,40 @@ const BUNKERS = [
 ];
 
 const BUNKER_EVENTS = [
-  {id:'rats-pantry',title:'Следы грызунов в кладовой',category:'sanitation',kind:'problem',problemType:'sanitation',description:'На нижней полке обнаружены следы грызунов и повреждённая внешняя упаковка. Герметичные контейнеры нужно проверить отдельно.',costMaterials:0,repairable:true,resolutionText:'Кладовая изолирована, продукты отсортированы, вентиляционный проход закрыт.',effect:{},resolutionEffect:{infrastructure:{sanitation:18}}},
+  {id:'rats-pantry',title:'Следы грызунов в кладовой',category:'sanitation',kind:'problem',problemType:'sanitation',description:'На нижней полке обнаружены следы грызунов и повреждённая внешняя упаковка. Герметичные контейнеры нужно проверить отдельно.',costMaterials:0,repairable:false,resolutionText:'Кладовая изолирована, продукты отсортированы, вентиляционный проход закрыт.',effect:{},resolutionEffect:{infrastructure:{sanitation:18}}},
   {id:'hidden-bunk',title:'Дополнительное спальное место',category:'room',kind:'capacity',description:'За перегородкой найдено сухое помещение, которое можно оборудовать под одно безопасное спальное место.',costMaterials:0,repairable:false,effect:{capacity:1}},
-  {id:'ventilation-leak',title:'Нарушение вентиляции',category:'ventilation',kind:'problem',problemType:'ventilation',description:'Вытяжной канал пропускает воздух через старый фильтр. Без ремонта накапливается дополнительный риск.',costMaterials:1,repairable:true,resolutionText:'Стык герметизирован, фильтр установлен правильно.',effect:{},resolutionEffect:{infrastructure:{ventilation:22}}},
+  {id:'ventilation-leak',title:'Нарушение вентиляции',category:'ventilation',kind:'problem',problemType:'ventilation',description:'Вытяжной канал пропускает воздух через старый фильтр. Без ремонта накапливается дополнительный риск.',costMaterials:0,repairable:false,resolutionText:'Стык герметизирован, фильтр установлен правильно.',effect:{},resolutionEffect:{infrastructure:{ventilation:22}}},
   {id:'tool-locker',title:'Шкаф с техническими материалами',category:'materials',kind:'resource',description:'Найдены совместимые крепления, кабель и ручные инструменты; запас можно использовать при ремонте.',effect:{resource:'materials',delta:2}},
   {id:'water-tank',title:'Запечатанный резервуар',category:'water',kind:'resource',description:'Дополнительная ёмкость с проверенной водой подключена к внутреннему контуру.',effect:{resource:'water',delta:5}},
   {id:'damaged-food',title:'Повреждённая партия продуктов',category:'food',kind:'resource',description:'Часть упаковок испорчена из-за сырости. Непригодная часть удалена из учёта.',effect:{resource:'food',delta:-3}},
   {id:'backup-battery',title:'Сервисный аккумулятор',category:'power',kind:'resource',description:'Обнаружен изолированный аккумулятор умеренной ёмкости, пригодный для аварийного контура.',effect:{resource:'energy',delta:8}},
   {id:'manual-pump',title:'Ручной насос',category:'water',kind:'resource',description:'В боковом отсеке лежит исправный ручной насос для аварийной подачи воды.',effect:{resource:'water',delta:3}},
-  {id:'weak-door',title:'Ослабленная гермодверь',category:'structure',kind:'problem',problemType:'structure',description:'Уплотнение двери деформировано. До ремонта часть помещений нельзя считать полностью изолированными.',costMaterials:1,repairable:true,resolutionText:'Уплотнение заменено, контроль закрытия пройден.',effect:{},resolutionEffect:{infrastructure:{structure:20}}},
+  {id:'weak-door',title:'Ослабленная гермодверь',category:'structure',kind:'problem',problemType:'structure',description:'Уплотнение двери деформировано. До ремонта часть помещений нельзя считать полностью изолированными.',costMaterials:0,repairable:false,resolutionText:'Уплотнение заменено, контроль закрытия пройден.',effect:{},resolutionEffect:{infrastructure:{structure:20}}},
   {id:'medical-cache',title:'Медицинская укладка',category:'medicine',kind:'resource',description:'В закрытом шкафу сохранились перевязочные материалы и базовые средства ухода.',effect:{resource:'medicine',delta:3}},
   {id:'filter-stock',title:'Комплект сменных фильтров',category:'ventilation',kind:'resource',description:'В запасе найдены фильтрующие кассеты, подходящие к внутреннему воздухообменнику.',effect:{resource:'materials',delta:1},resolutionEffect:{infrastructure:{ventilation:8}}},
-  {id:'corroded-cable',title:'Коррозия силового кабеля',category:'power',kind:'problem',problemType:'power',description:'На силовом кабеле появилась коррозия. Нагрузка ограничена до безопасной замены участка.',costMaterials:1,repairable:true,resolutionText:'Повреждённый участок кабеля заменён и изолирован.',effect:{},resolutionEffect:{resource:'energy',delta:5,infrastructure:{power:22}}},
+  {id:'corroded-cable',title:'Коррозия силового кабеля',category:'power',kind:'problem',problemType:'power',description:'На силовом кабеле появилась коррозия. Нагрузка ограничена до безопасной замены участка.',costMaterials:0,repairable:false,resolutionText:'Повреждённый участок кабеля заменён и изолирован.',effect:{},resolutionEffect:{resource:'energy',delta:5,infrastructure:{power:22}}},
   {id:'hydroponic-shelf',title:'Стеллаж для гидропоники',category:'food',kind:'feature',description:'В отдельном помещении сохранился стеллаж для выращивания зелени при контролируемом освещении.',effect:{resource:'food',delta:2,infrastructure:{foodProduction:12}}},
   {id:'dry-storage',title:'Сухой складской отсек',category:'room',kind:'feature',description:'Найден сухой отсек для изоляции неповреждённых запасов от влажных зон.',effect:{infrastructure:{sanitation:8}}},
   {id:'emergency-exit',title:'Запасной выход',category:'passage',kind:'feature',description:'За технической дверью обнаружен запасной выход. Он требует проверки креплений перед использованием.',effect:{infrastructure:{structure:5}}},
   {id:'condensation',title:'Сбор конденсата',category:'water',kind:'resource',description:'Рабочая поверхность конденсатора позволяет вернуть часть влаги в водный запас.',effect:{resource:'water',delta:2,infrastructure:{waterRecovery:8}}},
-  {id:'food-moth',title:'Насекомые в сухом пайке',category:'food',kind:'problem',problemType:'sanitation',description:'В части мягкой упаковки обнаружены насекомые. Необходимо изолировать партию и очистить полки.',costMaterials:0,repairable:true,resolutionText:'Партия изолирована, стеллаж очищен, пригодные контейнеры проверены.',effect:{resource:'food',delta:-1},resolutionEffect:{infrastructure:{sanitation:10}}},
+  {id:'food-moth',title:'Насекомые в сухом пайке',category:'food',kind:'problem',problemType:'sanitation',description:'В части мягкой упаковки обнаружены насекомые. Необходимо изолировать партию и очистить полки.',costMaterials:0,repairable:false,resolutionText:'Партия изолирована, стеллаж очищен, пригодные контейнеры проверены.',effect:{resource:'food',delta:-1},resolutionEffect:{infrastructure:{sanitation:10}}},
   {id:'thermal-curtain',title:'Тепловая штора',category:'heat',kind:'feature',description:'В кладовой сохранился теплоизоляционный материал для отделения неиспользуемого отсека.',effect:{resource:'energy',delta:3,infrastructure:{structure:6}}},
   {id:'old-generator',title:'Резервный генератор',category:'power',kind:'resource',description:'Небольшой генератор можно включать короткими циклами при наличии технического контроля.',effect:{resource:'energy',delta:10}},
-  {id:'blocked-drain',title:'Засорённый дренаж',category:'water',kind:'problem',problemType:'water',description:'Дренажный канал частично засорён; при большом расходе есть риск скопления воды.',costMaterials:0,repairable:true,resolutionText:'Канал прочищен, контрольный пролив прошёл без задержек.',effect:{},resolutionEffect:{infrastructure:{waterRecovery:15,structure:5}}},
+  {id:'blocked-drain',title:'Засорённый дренаж',category:'water',kind:'problem',problemType:'water',description:'Дренажный канал частично засорён; при большом расходе есть риск скопления воды.',costMaterials:0,repairable:false,resolutionText:'Канал прочищен, контрольный пролив прошёл без задержек.',effect:{},resolutionEffect:{infrastructure:{waterRecovery:15,structure:5}}},
   {id:'seed-vault',title:'Семенной архив',category:'food',kind:'resource',description:'Герметичная коробка семян содержит несколько культур для небольшого пробного цикла.',effect:{resource:'food',delta:2,infrastructure:{foodProduction:8}}},
   {id:'sealed-archive',title:'Технический архив',category:'materials',kind:'feature',description:'Бумажные схемы соответствуют части установленного оборудования и уменьшают риск ошибочного ремонта.',effect:{resource:'materials',delta:1,infrastructure:{power:5}}},
-  {id:'cracked-pipe',title:'Трещина в водопроводе',category:'water',kind:'problem',problemType:'water',description:'На вторичном контуре появилась трещина. До ремонта следует ограничить давление.',costMaterials:1,repairable:true,resolutionText:'Трещина устранена, соединение прошло испытание под умеренным давлением.',effect:{resource:'water',delta:-1},resolutionEffect:{infrastructure:{waterRecovery:18}}},
-  {id:'insulated-room',title:'Изолированная комната',category:'room',kind:'problem',problemType:'capacity',capacityEvent:true,description:'Изолированный отсек потенциально даст ещё одно место, но до проверки креплений и установки перегородки его нельзя заселять.',costMaterials:1,repairable:true,resolutionText:'Отсек укреплён, оборудован и безопасно добавлен в жилую зону.',effect:{},resolutionEffect:{capacity:1,infrastructure:{structure:8}}},
+  {id:'cracked-pipe',title:'Трещина в водопроводе',category:'water',kind:'problem',problemType:'water',description:'На вторичном контуре появилась трещина. До ремонта следует ограничить давление.',costMaterials:0,repairable:false,resolutionText:'Трещина устранена, соединение прошло испытание под умеренным давлением.',effect:{resource:'water',delta:-1},resolutionEffect:{infrastructure:{waterRecovery:18}}},
+  {id:'insulated-room',title:'Изолированная комната',category:'room',kind:'problem',problemType:'capacity',capacityEvent:true,description:'Изолированный отсек потенциально даст ещё одно место, но до проверки креплений и установки перегородки его нельзя заселять.',costMaterials:0,repairable:false,resolutionText:'Отсек укреплён, оборудован и безопасно добавлен в жилую зону.',effect:{},resolutionEffect:{capacity:1,infrastructure:{structure:8}}},
   {id:'medical-fridge',title:'Холодовой контейнер',category:'medicine',kind:'feature',description:'Пассивный термоконтейнер помогает сохранить часть температурно-чувствительных запасов.',effect:{resource:'medicine',delta:1,infrastructure:{power:4}}},
-  {id:'sanitation-failure',title:'Сбой санитарного контура',category:'sanitation',kind:'problem',problemType:'sanitation',description:'Узел санитарной обработки работает нестабильно; без обслуживания возрастает риск загрязнения жилой зоны.',costMaterials:1,repairable:true,resolutionText:'Санитарный контур очищен и возвращён к контролируемому режиму.',effect:{},resolutionEffect:{infrastructure:{sanitation:24}}},
+  {id:'sanitation-failure',title:'Сбой санитарного контура',category:'sanitation',kind:'problem',problemType:'sanitation',description:'Узел санитарной обработки работает нестабильно; без обслуживания возрастает риск загрязнения жилой зоны.',costMaterials:0,repairable:false,resolutionText:'Санитарный контур очищен и возвращён к контролируемому режиму.',effect:{},resolutionEffect:{infrastructure:{sanitation:24}}},
   {id:'reinforced-beam',title:'Усиленная опорная балка',category:'structure',kind:'feature',description:'За панелью найдена опорная балка, подходящая для локального усиления несущей конструкции.',effect:{infrastructure:{structure:15}}},
   {id:'water-purifier',title:'Запасной фильтр воды',category:'water',kind:'resource',description:'Запасной фильтр снижает зависимость от одного узла очистки и помогает экономить основной комплект.',effect:{resource:'water',delta:3,infrastructure:{waterRecovery:8}}},
   {id:'air-sensor',title:'Независимый датчик воздуха',category:'ventilation',kind:'feature',description:'Найден автономный датчик, который позволяет перепроверять показания основного вентиляционного блока.',effect:{infrastructure:{ventilation:10}}},
   {id:'hidden-pantry',title:'Потайная кладовая',category:'room',kind:'resource',description:'В узком боковом помещении сохранились герметично упакованные базовые продукты.',effect:{resource:'food',delta:4}},
-  {id:'roof-seepage',title:'Просачивание через перекрытие',category:'structure',kind:'problem',problemType:'structure',description:'После старого смещения грунта через шов просачивается влага; длительное игнорирование ослабит отделку и оборудование.',costMaterials:1,repairable:true,resolutionText:'Шов герметизирован, повторная проверка протечки не выявила.',effect:{resource:'water',delta:1},resolutionEffect:{infrastructure:{structure:15,sanitation:5}}}
+  {id:'roof-seepage',title:'Просачивание через перекрытие',category:'structure',kind:'problem',problemType:'structure',description:'После старого смещения грунта через шов просачивается влага; длительное игнорирование ослабит отделку и оборудование.',costMaterials:0,repairable:false,resolutionText:'Шов герметизирован, повторная проверка протечки не выявила.',effect:{resource:'water',delta:1},resolutionEffect:{infrastructure:{structure:15,sanitation:5}}},
+  {id:'weak-food-seal',title:'Слабая герметизация продуктов',category:'food',kind:'problem',problemType:'food-storage',description:'У части запасов повреждены швы упаковки: влага и воздух могут испортить продукты во время долгого хранения. В финале проверим, есть ли в составе кладовщик, фасовщик или специалист по пищевой безопасности.',costMaterials:0,repairable:false,resolutionText:'Продукты отсортированы, упаковка повторно загерметизирована, безопасные сроки хранения пересчитаны.',resolutionRoles:['кладовщик','фасовщик','пищевой безопасности','повар','агроном'],effect:{resource:'food',delta:-1},resolutionEffect:{resource:'food',delta:2,infrastructure:{sanitation:8,foodProduction:4}}},
+  {id:'unknown-medicine',title:'Лекарства неизвестного происхождения',category:'medicine',kind:'problem',problemType:'medicine-safety',description:'В медпункте найден запас препаратов без понятной истории хранения и подтверждённого состава. Без специалиста их нельзя считать полноценным запасом.',costMaterials:0,repairable:false,resolutionText:'Фармацевт сверил маркировку, отсортировал сомнительные упаковки и выделил препараты, пригодные для безопасного использования.',resolutionRoles:['фармацевт','врач','биолог'],effect:{},resolutionEffect:{resource:'medicine',delta:2,infrastructure:{sanitation:4}}},
+  {id:'foreign-medicine-label',title:'Инструкции к лекарствам на незнакомом языке',category:'medicine',kind:'problem',problemType:'translation',description:'Часть упаковок снабжена инструкциями на иностранном языке. Ошибка в дозировке может сделать запасы бесполезными или опасными.',costMaterials:0,repairable:false,resolutionText:'Лингвист или учитель английского перевёл инструкции; фармацевт проверил дозировки и отложил препараты с неоднозначной маркировкой.',resolutionRoles:['лингвист','переводчик','учитель английского','фармацевт'],effect:{},resolutionEffect:{resource:'medicine',delta:2}}
 ];
 
 const REVEAL_QUOTA = {
@@ -201,6 +207,9 @@ const state = {
   pendingRevealRequests: new Map(),
   reconnectInProgress: false,
   signalingRetryCount: 0,
+  keepScreenAwake: false,
+  wakeLock: null,
+  hostReconnectTimer: null,
   game: null
 };
 
@@ -338,7 +347,8 @@ function makePlayers(names, hostPlayerId, total) {
     mutedNextSpeech: false,
     vote: null,
     speechDone: false,
-    hostPlayer: hostPlayerId === idx
+    hostPlayer: hostPlayerId === idx,
+    bot: false
   }));
 }
 
@@ -406,7 +416,7 @@ function revealBunkerEvent(stageIndex) {
   bs.discoveries.push({ id: event.id, title: event.title, description: event.description, round: g.round || 1 });
   if (event.kind === 'problem') {
     if (!bs.activeProblems.some(problem => problem.id === event.id)) {
-      bs.activeProblems.push({ id: event.id, title: event.title, category: event.category, problemType: event.problemType, description: event.description, costMaterials: Number(event.costMaterials || 0), repairable: !!event.repairable, severity: 1 });
+      bs.activeProblems.push({ id: event.id, title: event.title, category: event.category, problemType: event.problemType, description: event.description, severity: 1 });
     }
   }
   if (event.effect && Object.keys(event.effect).length) {
@@ -501,30 +511,135 @@ function revealFinalWorldKnowledge() {
   for (let stage = 0; stage < count; stage++) discoverWorldStage(stage);
 }
 
-function resolveBunkerEvent(eventId, playerId) {
-  if (!state.isHost || !state.game || !['turns','discussion','speeches','defense','vote','farewell'].includes(state.game.currentPhase)) return false;
-  const g = state.game;
-  const actor = playerById(playerId);
-  if (!actor || actor.eliminated) return false;
-  const bs = g.bunkerState;
-  const event = bs?.events?.find(item => item.id === eventId);
-  const problem = bs?.activeProblems?.find(item => item.id === eventId);
-  if (!event || !problem || !event.repairable || event.resolved) return false;
-  const cost = Math.max(0, Number(event.costMaterials || 0));
-  if (Number(bs.resources.materials || 0) < cost) return toast('Не хватает технических материалов для ремонта.'), false;
-  if (cost) bs.resources.materials -= cost;
-  const applied = applyBunkerEffect(g, event, event.resolutionEffect || {}, `${event.id}:resolve`);
-  // Mark resolved only after the one-time resolution effect was accepted.
-  if (!applied && !bs.appliedEffects.includes(`${event.id}:resolve`)) return false;
-  event.resolved = true;
-  event.resolutionText = event.resolutionText || 'Проблема устранена.';
-  bs.activeProblems = bs.activeProblems.filter(item => item.id !== eventId);
-  bs.resolvedProblems.push({ id: event.id, title: event.title, resolutionText: event.resolutionText, round: g.round });
-  g.log.push(`${actor.name} устранил проблему: ${event.title}.`);
+const PROBLEM_SPECIALISTS = {
+  'weak-door': ['инженер','строитель','плотник','слесарь','механик'],
+  'corroded-cable': ['электрик','инженер','механик'],
+  'ventilation-leak': ['инженер','электрик','механик','сантехник'],
+  'blocked-drain': ['сантехник','инженер','механик','геолог'],
+  'cracked-pipe': ['сантехник','инженер','механик'],
+  'insulated-room': ['строитель','плотник','инженер'],
+  'sanitation-failure': ['врач','биолог','фармацевт','специалист по пищевой безопасности'],
+  'roof-seepage': ['строитель','плотник','инженер'],
+  'food-moth': ['кладовщик','фасовщик','повар','агроном','биолог','специалист по пищевой безопасности'],
+  'rats-pantry': ['кладовщик','фасовщик','повар','агроном','биолог','специалист по пищевой безопасности'],
+  'weak-food-seal': ['кладовщик','фасовщик','пищевой безопасности','повар','агроном'],
+  'unknown-medicine': ['фармацевт','врач','биолог'],
+  'foreign-medicine-label': ['лингвист','переводчик','учитель английского','фармацевт']
+};
+
+function professionOf(player) {
+  return String(player?.cards?.profession?.value || '').toLocaleLowerCase('ru-RU');
+}
+
+function resolveBunkerProblemsAtFinal(g) {
+  const bs = g?.bunkerState;
+  if (!bs || bs.finalProblemsResolved) return [];
+  // Before the final phase, bunkered is not populated yet; any non-eliminated participant is still a candidate survivor.
+  const survivors = (g.players || []).filter(p => !p.eliminated && p.occupied !== false);
+  const unresolved = [...(bs.activeProblems || [])];
+  const outcomes = [];
+  unresolved.forEach(problem => {
+    const event = (bs.events || []).find(item => item.id === problem.id) || BUNKER_EVENTS.find(item => item.id === problem.id);
+    const explicitRoles = event?.resolutionRoles;
+    const roles = Array.isArray(explicitRoles) && explicitRoles.length
+      ? explicitRoles.map(x => String(x).toLocaleLowerCase('ru-RU'))
+      : (PROBLEM_SPECIALISTS[problem.id] || {
+          structure: ['инженер','строитель','плотник','слесарь'],
+          power: ['электрик','инженер','механик'],
+          ventilation: ['инженер','электрик','механик'],
+          water: ['сантехник','инженер','механик','геолог'],
+          sanitation: ['врач','биолог','фармацевт','кладовщик','фасовщик','повар'],
+          capacity: ['строитель','плотник','инженер']
+        }[problem.problemType] || []);
+    const specialist = survivors.find(player => {
+      const profession = professionOf(player);
+      return roles.some(role => profession.includes(role));
+    });
+    if (!specialist || !event) {
+      outcomes.push({ id: problem.id, title: problem.title, resolved: false, message: 'Подходящего специалиста среди выживших не оказалось.' });
+      return;
+    }
+    // Финальная экспертиза не требует отдельной кнопки или материалов: это проверка состава.
+    const effectKey = `${event.id}:final-resolve`;
+    if (event.resolutionEffect && Object.keys(event.resolutionEffect).length) {
+      applyBunkerEffect(g, event, event.resolutionEffect, effectKey);
+    }
+    event.resolved = true;
+    event.resolutionText = event.resolutionText || 'Проблема устранена специалистом в финале.';
+    bs.activeProblems = bs.activeProblems.filter(item => item.id !== problem.id);
+    const resolvedRecord = {
+      id: problem.id,
+      title: problem.title,
+      resolutionText: `${event.resolutionText} Специалист: ${specialist.name} (${specialist.cards.profession.value}).`,
+      round: 'Финал', specialist: specialist.name, profession: specialist.cards.profession.value
+    };
+    bs.resolvedProblems.push(resolvedRecord);
+    outcomes.push({ id: problem.id, title: problem.title, resolved: true, specialist: specialist.name, profession: specialist.cards.profession.value, message: resolvedRecord.resolutionText });
+    g.log.push(`${specialist.name} (${specialist.cards.profession.value}) решил проблему бункера в финале: ${problem.title}.`);
+  });
+  bs.finalProblemsResolved = true;
+  bs.finalProblemOutcomes = outcomes;
+  return outcomes;
+}
+
+const BOT_NAMES = ['Бот-Альфа','Бот-Бета','Бот-Гамма','Бот-Дельта','Бот-Эпсилон','Бот-Дзета','Бот-Эта','Бот-Тета','Бот-Йота','Бот-Каппа','Бот-Лямбда','Бот-Мю','Бот-Ню','Бот-Кси'];
+function addTestBot() {
+  if (!state.isHost || !state.game || state.game.status !== 'lobby') return toast('Ботов можно добавлять до начала партии.');
+  if (state.game.players.length >= MAX_PLAYERS) return toast(`Достигнут лимит ${MAX_PLAYERS} участников.`);
+  const botIndex = state.game.players.filter(p => p.bot).length;
+  const name = BOT_NAMES[botIndex % BOT_NAMES.length];
+  const bot = makePlayers([`${name} ${botIndex + 1}`], null, 1)[0];
+  bot.slot = state.game.players.length + 1;
+  bot.bot = true;
+  bot.connected = true;
+  bot.ready = true;
+  bot.peerId = null;
+  bot.clientId = null;
+  bot.hostPlayer = false;
+  state.game.players.push(bot);
+  state.game.log.push(`Хост добавил тестового участника ${bot.name}.`);
   syncAndRender();
   return true;
 }
-
+function fillTestBots() {
+  if (!state.isHost || !state.game || state.game.status !== 'lobby') return;
+  while (state.game.players.length < MIN_PLAYERS && state.game.players.length < MAX_PLAYERS) {
+    const botIndex = state.game.players.filter(p => p.bot).length;
+    const bot = makePlayers([`${BOT_NAMES[botIndex % BOT_NAMES.length]} ${botIndex + 1}`], null, 1)[0];
+    bot.slot = state.game.players.length + 1; bot.bot = true; bot.connected = true; bot.ready = true; bot.peerId = null; bot.clientId = null; bot.hostPlayer = false;
+    state.game.players.push(bot);
+  }
+  syncAndRender();
+  toast(`Тестовая компания подготовлена: ${state.game.players.length} участников.`);
+}
+function removeTestBots() {
+  if (!state.isHost || !state.game || state.game.status !== 'lobby') return;
+  state.game.players = state.game.players.filter(p => !p.bot);
+  syncAndRender();
+}
+function hostBotVote(botId, targetId) {
+  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return;
+  const bot = playerById(botId);
+  if (!bot?.bot || bot.eliminated) return;
+  castVote(bot.id, targetId);
+}
+function autoVoteForBots() {
+  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return;
+  const g = state.game;
+  const eligible = activePlayers();
+  const bots = eligible.filter(p => p.bot && !Object.prototype.hasOwnProperty.call(g.votes, p.id));
+  if (!eligible.length || !bots.length) return toast('Нет ботов, которым нужно проголосовать.');
+  bots.forEach(bot => {
+    const choices = eligible.filter(p => p.id !== bot.id);
+    const target = pick(choices.length ? choices : eligible);
+    g.votes[bot.id] = target.id;
+    bot.vote = target.id;
+    g.log.push(`Тестовый бот ${bot.name} проголосовал за ${target.name}.`);
+  });
+  syncAndRender();
+  const allVoted = eligible.every(p => Object.prototype.hasOwnProperty.call(g.votes, p.id));
+  if (allVoted) finishVote();
+}
 function createGame(settings, names, hostPlayerIdx = null) {
   const cat = pick(CATASTROPHES);
   const bunker = pick(BUNKERS);
@@ -675,6 +790,24 @@ function finishTurn() {
   } else {
     syncAndRender();
   }
+}
+
+function hostForceFinishTurn() {
+  if (!state.isHost || !state.game || state.game.currentPhase !== 'turns') return false;
+  const g = state.game;
+  const p = currentTurnPlayer();
+  if (!p || p.eliminated) return false;
+  const hiddenTypes = CARD_TYPES.map(([type]) => type).filter(type => !p.revealed.includes(type));
+  const chosen = shuffle(hiddenTypes).slice(0, Math.min(2, hiddenTypes.length));
+  chosen.forEach(type => {
+    p.revealed.push(type);
+    g.log.push(`Хост завершил ход ${p.name}: автоматически раскрыта характеристика «${CARD_NAMES[type]}».`);
+  });
+  p.revealsThisRound = revealQuota(g.settings.playerCount, g.round);
+  p.lastRevealRound = g.round;
+  if (chosen.length) toast(`За ${p.name} открыто ${chosen.length} случайных характеристик.`);
+  else g.log.push(`Ход ${p.name} пропущен без новых характеристик.`);
+  return finishTurn();
 }
 
 function beginDiscussion() {
@@ -949,6 +1082,7 @@ function skipVotingRoundOne() {
 function finishGame() {
   const g = state.game;
   revealFinalWorldKnowledge();
+  resolveBunkerProblemsAtFinal(g);
   g.currentPhase = 'final';
   g.status = 'finished';
   g.players.forEach(p => { p.bunkered = !p.eliminated; });
@@ -1219,6 +1353,7 @@ function calculateFinalReport() {
       bunkerResources: { food: currentFood, water: currentWater, energy: currentEnergy, materials: Number(resources.materials || 0), medicine: Number(resources.medicine || 0) },
       activeProblems: unresolvedProblems.map(problem => problem.title),
       resolvedProblems: (bunkerState.resolvedProblems || []).map(problem => problem.title),
+      bunkerProblemOutcomes: clonePlain(bunkerState.finalProblemOutcomes || []),
       discoveries: (bunkerState.discoveries || []).map(item => item.title),
       catastropheFacts: (g.catastropheReveals || []).map(item => ({ id: item.id, title: item.title || '', history: item.history || '', text: item.text, round: item.round, effectApplied: !!item.effectApplied })),
       catastropheModifiers: clonePlain(worldMods),
@@ -1326,7 +1461,7 @@ function sanitizeForPeer(g, playerId) {
       stage: e.stage, discovered: !!e.discovered, resolved: !!e.resolved,
       resolutionText: e.resolutionText || '', kind: e.kind,
       applied: !!e.applied, problemType: e.problemType || null,
-      repairable: !!e.repairable, costMaterials: Number(e.costMaterials || 0)
+      repairable: false, costMaterials: 0
     }));
     delete clone.bunkerState.eventPlan;
   }
@@ -1455,10 +1590,6 @@ function handleHostMessage(conn, msg) {
     setSkipChoice(player.id, !!msg.enabled);
     return;
   }
-  if (msg.action === 'resolveBunkerEvent') {
-    resolveBunkerEvent(String(msg.eventId || ''), player.id);
-    return;
-  }
   // Host phase controls are local-only. A regular client cannot start timers,
   // skip phases, finish a vote, kick players, or directly edit shared state.
 }
@@ -1490,6 +1621,18 @@ function closeClientPeer() {
   state.myId = null;
 }
 
+function scheduleHostPeerReconnect() {
+  if (!state.isHost || !state.peer || state.peer.destroyed) return;
+  if (state.hostReconnectTimer) clearTimeout(state.hostReconnectTimer);
+  state.hostReconnectTimer = setTimeout(() => {
+    state.hostReconnectTimer = null;
+    if (!state.isHost || !state.peer || state.peer.destroyed || !state.peer.disconnected) return;
+    try { state.peer.reconnect(); } catch (error) {
+      console.warn('Host signaling reconnect failed', error);
+      scheduleHostPeerReconnect();
+    }
+  }, 2500);
+}
 function createHost(name) {
   if (state.joinBusy) return;
   if (typeof Peer !== 'function') { state.joinError = 'Не удалось загрузить сетевой модуль. Проверьте доступ к CDN и обновите страницу.'; toast(state.joinError); render(); return; }
@@ -1503,6 +1646,11 @@ function createHost(name) {
   state.peer = peer;
   setBadge('создаём комнату…');
   peer.on('open', () => {
+    if (state.isHost && state.game) {
+      setBadge(`комната ${state.roomCode} · сигнализация активна`, true);
+      sendStateToAll();
+      return;
+    }
     state.joinBusy = false;
     const playerNames = [state.myName];
     state.game = createGame({ playerCount: 1 }, playerNames, 0);
@@ -1528,7 +1676,10 @@ function createHost(name) {
     toast(err?.type === 'unavailable-id' ? 'Код комнаты уже занят. Попробуйте создать комнату ещё раз.' : 'Не удалось создать комнату. Проверьте соединение.');
     render();
   });
-  peer.on('disconnected', () => setBadge('сервер связи отключён'));
+  peer.on('disconnected', () => {
+    setBadge('сигнализация отключена · переподключаемся');
+    scheduleHostPeerReconnect();
+  });
 }
 
 function joinRoom(roomCode, name) {
@@ -1748,19 +1899,69 @@ function handleHostJoinLobby(conn, msg) {
 }
 
 function kickPlayer(playerId) {
-  if (!state.isHost || !state.game || state.game.status !== 'lobby') return;
+  if (!state.isHost || !state.game) return;
+  const g = state.game;
+  if (g.status === 'finished') return toast('Партия уже завершена.');
   const p = playerById(playerId);
-  if (!p || p.hostPlayer) return toast('Создателя комнаты удалить нельзя.');
+  if (!p || p.hostPlayer || p.eliminated) return toast('Этот игрок недоступен для удаления.');
   const conn = p.peerId ? state.connections.get(p.peerId) : null;
   if (conn?.open) {
     try { conn.send({ type: 'kicked', message: 'Хост удалил вас из комнаты.' }); } catch {}
   }
   if (p.peerId) state.connections.delete(p.peerId);
   try { conn?.close(); } catch {}
-  state.game.players = state.game.players.filter(item => item.id !== p.id);
-  state.game.log.push(`Хост удалил ${p.name} из комнаты.`);
+  if (g.status === 'lobby') {
+    g.players = g.players.filter(item => item.id !== p.id);
+  } else {
+    const previousPhase = g.currentPhase;
+    const orderBeforeRemoval = orderedActive();
+    const removedIndex = orderBeforeRemoval.findIndex(item => item.id === p.id);
+    const oldTurnIndex = Number(g.currentTurnIndex) || 0;
+    const oldSpeechIndex = Number(g.currentSpeechIndex) || 0;
+    p.eliminated = true;
+    p.connected = false;
+    p.ready = false;
+    p.bunkered = false;
+    delete g.votes[p.id];
+    delete g.skipChoices[p.id];
+    Object.keys(g.votes || {}).forEach(voterId => { if (g.votes[voterId] === p.id) delete g.votes[voterId]; });
+    g.defenseQueue = (g.defenseQueue || []).filter(id => id !== p.id);
+    g.defenseCandidates = (g.defenseCandidates || []).filter(id => id !== p.id);
+    g.defendedThisRound = (g.defendedThisRound || []).filter(id => id !== p.id);
+    g.log.push(`Хост удалил ${p.name} из партии для тестирования.`);
+
+    if (activePlayers().length <= Number(g.capacity || 0)) {
+      finishGame();
+      return;
+    }
+    if (previousPhase === 'turns' && removedIndex >= 0) {
+      if (removedIndex < oldTurnIndex) g.currentTurnIndex = Math.max(0, oldTurnIndex - 1);
+      else if (removedIndex === oldTurnIndex && oldTurnIndex >= orderedActive().length) {
+        beginDiscussion();
+        return;
+      }
+    } else if (previousPhase === 'speeches' && removedIndex >= 0) {
+      if (removedIndex < oldSpeechIndex) g.currentSpeechIndex = Math.max(0, oldSpeechIndex - 1);
+      if (g.currentSpeechIndex >= orderedActive().length) {
+        beginVote();
+        return;
+      }
+    } else if (previousPhase === 'defense') {
+      if (!g.defenseQueue.length) {
+        startRevote();
+        return;
+      }
+    } else if (previousPhase === 'vote') {
+      const remaining = activePlayers();
+      if (remaining.length && remaining.every(voter => Object.prototype.hasOwnProperty.call(g.votes, voter.id))) {
+        finishVote();
+        return;
+      }
+    }
+  }
+  if (g.status === 'lobby') g.log.push(`Хост удалил ${p.name} из комнаты.`);
   syncAndRender();
-  toast('Игрок удалён из комнаты.');
+  toast('Игрок удалён.');
 }
 
 function reconnectToRoom() {
@@ -1804,7 +2005,7 @@ function buildSetupHtml() {
         <input id="hostName" value="${nameValue}" placeholder="Например, Али" maxlength="28" autocomplete="nickname" />
         <button class="btn primary btn-lg full" ${state.joinBusy ? 'disabled' : ''} onclick="uiCreate()">${state.joinBusy ? 'Создаём…' : 'Создать комнату'}</button>
         <div class="feature-list">
-          <div><span>01</span><strong>6–15 участников</strong><small>игру можно начать, когда собрались минимум шесть реальных игроков</small></div>
+          <div><span>01</span><strong>6–15 участников</strong><small>нужно минимум шесть участников; для тестов хост может добавить ботов</small></div>
           <div><span>02</span><strong>Случайный сценарий</strong><small>катастрофа, бункер и характеристики подбираются автоматически</small></div>
           <div><span>03</span><strong>Все играют</strong><small>каждый участник получает своего персонажа и участвует в голосовании</small></div>
         </div>
@@ -1814,15 +2015,11 @@ function buildSetupHtml() {
         <div class="panel-kicker">Короткие правила</div>
         <h2>Выберите, кто останется в бункере</h2>
         <p class="muted">Игроки по очереди раскрывают характеристики, обсуждают пользу каждого персонажа и голосуют. Цель — собрать самый устойчивый состав для выбранной катастрофы.</p>
-        <div class="mini-flow" aria-label="Этапы игры">
+        <div class="mini-flow" aria-label="Пять этапов игры">
           <div class="mini-step"><b>1</b><span>Лобби</span></div>
-          <div class="mini-flow-line"></div>
           <div class="mini-step"><b>2</b><span>Ходы</span></div>
-          <div class="mini-flow-line"></div>
-          <div class="mini-step"><b>3</b><span>Обсуждение</span></div>
-          <div class="mini-flow-line"></div>
-          <div class="mini-step"><b>4</b><span>Голосование</span></div>
-          <div class="mini-flow-line"></div>
+          <div class="mini-step"><b>3</b><span>Обсужд.</span></div>
+          <div class="mini-step"><b>4</b><span>Голос</span></div>
           <div class="mini-step"><b>5</b><span>Финал</span></div>
         </div>
         <div class="rules-list">
@@ -1838,6 +2035,8 @@ function renderLobby() {
   const g = state.game;
   if (!g.roomTitle) g.roomTitle = makeRoomTitle(g.catastrophe, g.bunker);
   const registered = g.players.filter(p => p.occupied).length;
+  const botCount = g.players.filter(p => p.bot && p.occupied).length;
+  const realCount = g.players.filter(p => !p.bot && p.occupied).length;
   const readyConnected = g.players.filter(p => p.connected && p.ready && p.occupied && !p.eliminated).length;
   const minPlayers = MIN_PLAYERS;
   const maxPlayers = MAX_PLAYERS;
@@ -1855,7 +2054,7 @@ function renderLobby() {
         <div class="player-list lobby-list">
           ${g.players.filter(p => p.occupied).map(p=>`<div class="player lobby-player">
             <div class="avatar">${playerAvatar(p)}</div>
-            <div><strong>${esc(p.name)}</strong><div class="small">${p.hostPlayer ? 'создатель комнаты' : p.connected ? (p.ready ? 'синхронизирован' : 'получает состояние') : 'нет связи'}</div></div>
+            <div><strong>${esc(p.name)}</strong><div class="small">${p.hostPlayer ? 'создатель комнаты' : p.bot ? 'тестовый бот · локальный участник' : p.connected ? (p.ready ? 'синхронизирован' : 'получает состояние') : 'нет связи'}</div></div>
             <div class="lobby-actions">${p.connected && p.ready ? `<span class="online-pill"><span></span>готов</span>` : `<span class="small">${p.connected ? 'синхронизация' : 'офлайн'}</span>`}${state.isHost && !p.hostPlayer ? `<button class="btn danger btn-icon" title="Удалить из комнаты" aria-label="Удалить ${esc(p.name)}" onclick="uiKickPlayer('${p.id}')">×</button>` : ''}</div>
           </div>`).join('')}
         </div>
@@ -1868,7 +2067,9 @@ function renderLobby() {
         <div class="metric"><span>Катастрофа</span><strong>${esc(g.catastrophe.title)}</strong></div>
         <div class="metric"><span>Бункер</span><strong>${esc(g.bunker.title)}</strong></div>
         <div class="metric"><span>Готовы к старту</span><strong>${readyConnected}/${MIN_PLAYERS} минимум</strong></div>
-        ${state.isHost ? `<button class="btn primary btn-lg full lobby-start" ${readyConnected < minPlayers ? 'disabled':''} onclick="uiStartGame()">${readyConnected < minPlayers ? `Нужно ещё ${minPlayers - readyConnected}` : 'Начать игру'}</button>` : '<div class="notice">Создатель комнаты запустит игру, когда соберутся минимум 6 синхронизированных участников.</div>'}
+        <div class="small">Реальных участников: ${realCount} · тестовых ботов: ${botCount}</div>
+        ${state.isHost ? `<button class="btn primary btn-lg full lobby-start" ${readyConnected < minPlayers ? 'disabled':''} onclick="uiStartGame()">${readyConnected < minPlayers ? `Нужно ещё ${minPlayers - readyConnected}` : 'Начать игру'}</button>
+          <div class="host-bot-tools"><h3>Тестирование без компании</h3><p class="small">Боты считаются участниками только в этой комнате. Можно начать с одного хоста и пяти ботов.</p><div class="row bot-actions"><button class="btn" onclick="uiAddBot()">+1 бот</button><button class="btn" onclick="uiFillBots()">Заполнить до 6</button><button class="btn" onclick="uiClearBots()">Убрать ботов</button></div><button class="btn full" onclick="uiToggleWakeLock()">${state.keepScreenAwake ? 'Выключить удержание экрана' : 'Не давать экрану гаснуть'}</button><p class="small">Удержание экрана помогает, пока вкладка активна; Android может приостановить браузер при переходе в Telegram.</p></div>` : '<div class="notice">Создатель комнаты запустит игру, когда соберутся минимум 6 участников, включая тестовых ботов.</div>'}
       </aside>
     </div>
   `;
@@ -1892,22 +2093,19 @@ function renderBunkerPanel(g) {
   ].filter(row => row[1] !== undefined);
   const eventCards = events.map(event => {
     const isProblem = problems.some(problem => problem.id === event.id);
-    const canRepair = isProblem && event.repairable && !event.resolved;
-    const repairButton = canRepair
-      ? `<button class="btn primary" onclick="uiResolveBunkerEvent('${esc(event.id)}')">Устранить проблему${Number(event.costMaterials || 0) ? ` · ${Number(event.costMaterials)} мат.` : ''}</button>`
-      : '';
-    const status = event.resolved ? 'устранено' : isProblem ? 'требует внимания' : event.applied ? 'эффект применён' : 'обнаружено';
+    const status = event.resolved ? 'решено в финале' : isProblem ? 'проверка навыков в финале' : event.applied ? 'эффект учтён' : 'обнаружено';
     return `<article class="bunker-event ${isProblem ? 'bunker-event-problem' : ''}">
       <div class="bunker-event-head"><span class="bunker-event-category">${esc(event.category || 'событие')}</span><span class="bunker-event-status">${status}</span></div>
       <h3>${esc(event.title)}</h3><p>${esc(event.description)}</p>
-      ${event.resolved && event.resolutionText ? `<p class="bunker-resolution">${esc(event.resolutionText)}</p>` : ''}${repairButton}
+      ${event.resolved && event.resolutionText ? `<p class="bunker-resolution">${esc(event.resolutionText)}</p>` : ''}
+      ${isProblem && !event.resolved ? '<p class="small bunker-deferred-note">Кнопкой не решается: в финале проверим профессии оставшихся в бункере.</p>' : ''}
     </article>`;
   }).join('');
   return `<section class="panel bunker-state-panel" aria-label="Состояние бункера">
     <div class="panel-heading-row"><div><div class="panel-kicker">Меняющаяся среда</div><h2>Состояние бункера</h2></div><span class="bunker-capacity">${bs.capacity?.current ?? g.capacity} мест <span>· база ${bs.capacity?.base ?? g.capacity}</span></span></div>
     <div class="bunker-resource-grid">${resourceRows.map(([label,value,unit]) => `<div class="bunker-resource"><span>${label}</span><strong>${esc(String(Math.round(Number(value || 0) * 10) / 10))}<small> ${unit}</small></strong></div>`).join('')}</div>
     <div class="bunker-infrastructure">${infraRows.map(([label,value]) => `<div class="bunker-infra-row"><div><span>${label}</span><strong>${Math.round(Number(value || 0))}/100</strong></div><div class="bunker-meter"><span style="width:${Math.max(0,Math.min(100,Number(value || 0)))}%"></span></div></div>`).join('')}</div>
-    ${problems.length ? `<div class="bunker-problems"><h3>Требуют решения (${problems.length})</h3><p class="small">Неустранённые неисправности снижают оценку пригодности бункера.</p></div>` : ''}
+    ${problems.length ? `<div class="bunker-problems"><h3>Задачи для финальной экспертизы (${problems.length})</h3><p class="small">Специалисты среди оставшихся в бункере могут устранить проблемы автоматически. Если нужной профессии нет, проблема снизит итоговую устойчивость.</p></div>` : ''}
     <div class="bunker-events-heading"><h3>Обнаруженные события</h3><span class="small">${events.length} найдено</span></div>
     ${eventCards ? `<div class="bunker-event-grid">${eventCards}</div>` : `<p class="muted">Новые особенности помещения будут открываться по ходу партии.</p>`}
   </section>`;
@@ -1925,7 +2123,8 @@ function renderFinalBunker(g, report) {
       <div><span>Проблемы остались</span><strong>${(bs.activeProblems || []).length}</strong></div>
     </div>
     ${discoveries.length ? `<h3>История изменений</h3><div class="bunker-timeline">${discoveries.map(item=>`<div class="bunker-timeline-item"><span>Раунд ${item.round}</span><div><strong>${esc(item.title)}</strong><p>${esc(item.description)}</p></div></div>`).join('')}</div>` : '<p class="muted">В этой партии не было зафиксировано открытий инфраструктуры.</p>'}
-    ${resolved.length ? `<h3>Устранённые неисправности</h3><div class="bunker-timeline">${resolved.map(item=>`<div class="bunker-timeline-item"><span>Раунд ${item.round}</span><div><strong>${esc(item.title)}</strong><p>${esc(item.resolutionText)}</p></div></div>`).join('')}</div>` : ''}
+    ${resolved.length ? `<h3>Устранённые неисправности</h3><div class="bunker-timeline">${resolved.map(item=>`<div class="bunker-timeline-item"><span>${esc(String(item.round || 'Финал')) === 'Финал' ? 'Финал' : `Раунд ${esc(String(item.round))}`}</span><div><strong>${esc(item.title)}</strong><p>${esc(item.resolutionText)}</p></div></div>`).join('')}</div>` : ''}
+    ${(report?.details?.bunkerProblemOutcomes || []).some(item => !item.resolved) ? `<h3>Проблемы без решения</h3><div class="bunker-timeline">${report.details.bunkerProblemOutcomes.filter(item=>!item.resolved).map(item=>`<div class="bunker-timeline-item"><span>Финал</span><div><strong>${esc(item.title)}</strong><p>${esc(item.message)}</p></div></div>`).join('')}</div>` : ''}
     ${report?.details?.bunkerSummary ? `<p class="small">${esc(report.details.bunkerSummary)}</p>` : ''}
   </section>`;
 }
@@ -1997,7 +2196,7 @@ function renderGame() {
       <div class="players-board">${g.players.map(p => renderPlayerRow(p, me, false)).join('')}</div>
     </section>
 
-    ${state.isHost ? `<div class="sticky-action"><section class="panel"><div class="row space"><div><strong>Управление партией</strong><div class="small">Таймеры и переходы этапов.</div></div>${hostControls(g, current)}</div></section></div>` : ''}
+    ${state.isHost ? `<div class="sticky-action"><section class="panel"><div class="row space host-controls-main"><div><strong>Управление партией</strong><div class="small">Таймеры, принудительное завершение хода и инструменты тестирования.</div>${current ? `<div class="small">Сейчас ходит: <strong>${esc(current.name)}${current.bot ? ' · бот' : ''}</strong></div>` : ''}</div><div class="host-controls-actions">${hostControls(g, current)}</div></div></section></div>` : ''}
   `;
 }
 
@@ -2038,7 +2237,8 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
     return `<section class="panel"><div class="row space"><div><div class="phase">Голосование ${g.voteRound > 1 ? '(повторное)' : ''}</div><h2>Кого исключаем?</h2></div><div class="center"><div class="timer" style="font-size:34px">${formatTime(g.timeLeft)}</div></div></div>
       <div class="notice success"><strong>2 минуты · живое голосование</strong><div class="small" style="margin-top:5px">Пока таймер идёт, можно обсуждать, защищаться и менять свой голос. Нераскрытые характеристики нельзя объявлять вслух. Нажатие «Завершить голосование» фиксирует результат.</div></div>
       <div class="row space" style="margin:12px 0"><span class="small">Проголосовали: <strong>${votedCount}/${eligibleCount}</strong></span>${allEligibleVoted ? '<span class="small">Все участники с правом голоса проголосовали — можно завершить раньше.</span>' : ''}</div>
-      ${me && !me.eliminated ? `<div class="vote-grid">${everyone.map(p => `<label class="vote-option"><input type="radio" name="vote" value="${esc(p.id)}" ${myVote===p.id?'checked':''} onchange="uiVote('${p.id}')" /> <span>${esc(p.name)}</span></label>`).join('')}</div>` : '<div class="notice">Вы уже выбыли из текущего состава.</div>'}
+      ${me && !me.eliminated ? `<div class="vote-grid">${everyone.map(p => `<label class="vote-option"><input type="radio" name="vote" value="${esc(p.id)}" ${myVote===p.id?'checked':''} onchange="uiVote('${p.id}')" /> <span>${esc(p.name)}${p.bot ? ' · бот' : ''}</span></label>`).join('')}</div>` : '<div class="notice">Вы уже выбыли из текущего состава.</div>'}
+      ${state.isHost && everyone.some(p => p.bot) ? `<div class="host-bot-votes"><h3>Решения за тестовых ботов</h3><p class="small">Выберите цель голосования для каждого бота или нажмите «Случайные голоса ботов» в панели хоста.</p>${everyone.filter(bot => bot.bot).map(bot => `<label class="host-bot-vote-row"><span>${esc(bot.name)}${g.votes?.[bot.id] ? ` · голос учтён` : ''}</span><select aria-label="За кого голосует ${esc(bot.name)}" onchange="uiBotVote('${bot.id}',this.value)"><option value="">${g.votes?.[bot.id] ? 'Изменить голос…' : 'Выберите игрока…'}</option>${everyone.filter(target => target.id !== bot.id).map(target => `<option value="${target.id}" ${g.votes?.[bot.id]===target.id?'selected':''}>${esc(target.name)}</option>`).join('')}</select></label>`).join('')}</div>` : ''}
       ${skipAvailable && me && !me.eliminated ? `<div class="vote-skip"><div><strong>Вариант первого раунда: пропуск</strong><div class="small">Если за пропуск наберётся больше половины игроков, никто не выбывает, а в следующем раунде исключаются два человека.</div></div><button class="btn ${skipChoice?'primary':''}" onclick="uiSkipChoice(${skipChoice?'false':'true'})">${skipChoice?'✓ Я за пропуск':'Я за пропуск'}</button></div>` : ''}
     </section>`;
   }
@@ -2089,7 +2289,7 @@ function renderPlayerCard(type, p, viewer, forceReveal = false) {
 }
 
 function renderPlayerRow(p, viewer = null, forceReveal = false) {
-  const status = p.eliminated ? 'Выбыл' : p.bunkered ? 'В бункере' : p.connected ? 'В лагере' : 'Нет связи';
+  const status = p.eliminated ? 'Выбыл' : p.bunkered ? 'В бункере' : p.bot ? 'Тестовый бот' : p.connected ? 'В лагере' : 'Нет связи';
   const statusClass = p.eliminated ? 'is-out' : p.bunkered ? 'is-safe' : p.connected ? 'is-online' : 'is-offline';
   const isMine = viewer?.id === p.id;
   return `<article class="player-board-card ${isMine ? 'player-board-me' : ''} ${p.eliminated ? 'player-board-out' : ''}">
@@ -2103,13 +2303,16 @@ function renderPlayerRow(p, viewer = null, forceReveal = false) {
 }
 
 function hostControls(g, current) {
-  if (g.currentPhase === 'turns') return `<button class="btn" onclick="uiFinishTurn()">${current ? 'Завершить ход' : '—'}</button>`;
-  if (g.currentPhase === 'discussion') return `<div class="row"><button class="btn primary" onclick="uiTimer(120)">Старт 120 сек</button><button class="btn" onclick="uiSpeechesStart()">К речам</button></div>`;
-  if (g.currentPhase === 'speeches') return `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiNextSpeech()">Следующий</button></div>`;
-  if (g.currentPhase === 'defense') return `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiFinishDefense()">Дальше</button></div>`;
-  if (g.currentPhase === 'farewell') return `<div class="row"><button class="btn" onclick="uiTimer(15)">15 сек</button><button class="btn primary" onclick="uiFinishFarewell()">Завершить речь</button></div>`;
-  if (g.currentPhase === 'vote') return `<div class="row"><button class="btn" onclick="uiTimer(120)">120 сек</button><button class="btn primary" onclick="uiFinishVote()">Завершить голосование</button></div>`;
-  return '';
+  let controls = '';
+  if (g.currentPhase === 'turns') controls = `<button class="btn primary" onclick="uiHostFinishTurn()">Завершить ход · открыть 2 случайные</button>`;
+  else if (g.currentPhase === 'discussion') controls = `<div class="row"><button class="btn primary" onclick="uiTimer(120)">Старт 120 сек</button><button class="btn" onclick="uiSpeechesStart()">К речам</button></div>`;
+  else if (g.currentPhase === 'speeches') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiNextSpeech()">Следующий</button></div>`;
+  else if (g.currentPhase === 'defense') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiFinishDefense()">Дальше</button></div>`;
+  else if (g.currentPhase === 'farewell') controls = `<div class="row"><button class="btn" onclick="uiTimer(15)">15 сек</button><button class="btn primary" onclick="uiFinishFarewell()">Завершить речь</button></div>`;
+  else if (g.currentPhase === 'vote') controls = `<div class="row"><button class="btn" onclick="uiTimer(120)">120 сек</button><button class="btn" onclick="uiAutoVoteBots()">Случайные голоса ботов</button><button class="btn primary" onclick="uiFinishVote()">Завершить голосование</button></div>`;
+  const kickable = g.players.filter(p => !p.hostPlayer && !p.eliminated);
+  const kickControl = kickable.length ? `<details class="host-kick-tools"><summary>Тест: удалить игрока</summary><p class="small">В лобби игрок удаляется из списка, во время игры немедленно выбывает без прощальной речи.</p><div class="host-kick-list">${kickable.map(p => `<div class="host-kick-row"><span>${esc(p.name)}${p.bot ? ' · бот' : ''}</span><button class="btn danger btn-sm" onclick="uiKickPlayer('${p.id}')">Удалить</button></div>`).join('')}</div></details>` : '';
+  return `${controls}${kickControl}`;
 }
 
 function renderFinalWorldChronicle(g) {
@@ -2190,6 +2393,38 @@ function render() {
   renderGame();
 }
 
+window.uiAddBot = () => addTestBot();
+window.uiFillBots = () => fillTestBots();
+window.uiClearBots = () => removeTestBots();
+window.uiBotVote = (botId, targetId) => { if (targetId) hostBotVote(botId, targetId); };
+window.uiAutoVoteBots = () => autoVoteForBots();
+window.uiHostFinishTurn = () => hostForceFinishTurn();
+window.uiKickPlayer = playerId => kickPlayer(playerId);
+window.uiToggleWakeLock = async () => {
+  state.keepScreenAwake = !state.keepScreenAwake;
+  if (!state.keepScreenAwake) {
+    try { await state.wakeLock?.release(); } catch {}
+    state.wakeLock = null;
+    toast('Удержание экрана выключено.');
+  } else {
+    await requestScreenWakeLock();
+  }
+  render();
+};
+async function requestScreenWakeLock() {
+  if (!state.keepScreenAwake || !state.isHost || document.visibilityState !== 'visible' || !('wakeLock' in navigator)) return false;
+  try {
+    state.wakeLock = await navigator.wakeLock.request('screen');
+    state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
+    toast('Экран будет оставаться включённым, пока браузер разрешает удержание.');
+    return true;
+  } catch (error) {
+    console.warn('Wake lock unavailable', error);
+    toast('Браузер не разрешил удерживать экран.');
+    return false;
+  }
+}
+
 window.uiCreate = () => {
   const name = document.getElementById('hostName')?.value || '';
   if (!name.trim()) return toast('Введите имя.');
@@ -2207,11 +2442,6 @@ window.uiReconnect = () => {
   const name = document.getElementById('joinName')?.value || state.myName || savedName();
   if (!name.trim()) return toast('Введите имя.');
   joinRoom(room, name);
-};
-window.uiKickPlayer = playerId => kickPlayer(playerId);
-window.uiResolveBunkerEvent = eventId => {
-  if (state.isHost) resolveBunkerEvent(eventId, state.myPlayerId);
-  else sendToHost({ action: 'resolveBunkerEvent', eventId });
 };
 window.uiReveal = type => revealCard(state.myPlayerId, type);
 window.uiRevealOnce = (button, type) => {
@@ -2298,13 +2528,25 @@ window.copyRoomLink = async () => {
 // When a mobile browser returns from the background, ask the authoritative host
 // for a fresh snapshot; do not reconstruct a round from local random data.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || state.isHost) return;
+  if (document.visibilityState !== 'visible') return;
+  if (state.isHost) {
+    if (state.peer?.disconnected) {
+      try { state.peer.reconnect(); } catch (error) { console.warn('Host reconnect on foreground failed', error); scheduleHostPeerReconnect(); }
+    }
+    if (state.game) sendStateToAll();
+    if (state.keepScreenAwake) requestScreenWakeLock();
+    return;
+  }
   if (state.mode === 'game' && state.pendingHost?.open) {
     sendToHost({ action: 'requestState' });
-  } else if (state.mode === 'joining' && !state.joinBusy && (state.roomCode || getRoomFromUrl())) {
+  } else if ((state.mode === 'joining' && !state.joinBusy || state.mode === 'game' && !state.pendingHost?.open) && (state.roomCode || getRoomFromUrl())) {
     uiReconnect();
   }
 });
+// Reconnect PeerJS signaling if Android suspends it while the browser is backgrounded.
+setInterval(() => {
+  if (state.isHost && state.peer && !state.peer.destroyed && state.peer.disconnected) scheduleHostPeerReconnect();
+}, 12000);
 
 // Refreshing a participant's page restores the same identity from localStorage.
 setInterval(refreshTimerDisplay, 250);
