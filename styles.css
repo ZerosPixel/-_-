@@ -466,3 +466,59 @@ input:focus, select:focus { border-color: rgba(255,138,36,.7); box-shadow: 0 0 0
   .my-card-count { white-space: normal; }
   .turn-panel-head { flex-direction: column; }
 }
+
+/* Progressive world discovery and the live bunker model. */
+.discovery-panel,
+.bunker-state-panel,
+.final-bunker-panel { margin-top: 14px; }
+.discovery-list { display: grid; gap: 10px; }
+.discovery-item { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.025); }
+.discovery-item p { margin: 7px 0 0; line-height: 1.55; }
+.discovery-round { color: var(--muted); font-size: .76rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.bunker-capacity { display: inline-flex; align-items: baseline; gap: 5px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; font-weight: 800; white-space: nowrap; }
+.bunker-capacity span { color: var(--muted); font-size: .75rem; font-weight: 500; }
+.bunker-resource-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; margin: 14px 0; }
+.bunker-resource { min-width: 0; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.025); }
+.bunker-resource > span { display:block; color:var(--muted); font-size:.78rem; }
+.bunker-resource > strong { display:block; margin-top:4px; font-size:1.18rem; overflow-wrap:anywhere; }
+.bunker-resource small { color:var(--muted); font-size:.72rem; font-weight:500; }
+.bunker-infrastructure { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 18px; margin:14px 0 18px; }
+.bunker-infra-row > div:first-child { display:flex; justify-content:space-between; gap:8px; font-size:.82rem; }
+.bunker-infra-row strong { white-space:nowrap; }
+.bunker-meter { height:7px; margin-top:6px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.09); }
+.bunker-meter > span { display:block; height:100%; border-radius:inherit; background:var(--accent,#b6cf9b); }
+.bunker-events-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-top:14px; }
+.bunker-events-heading h3, .bunker-problems h3, .final-bunker-panel h3 { margin:0; font-size:1rem; }
+.bunker-event-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:10px; }
+.bunker-event { min-width:0; padding:13px; border:1px solid var(--line); border-radius:13px; background:rgba(255,255,255,.025); }
+.bunker-event-problem { border-color:rgba(220,153,95,.55); }
+.bunker-event-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; }
+.bunker-event-category { color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; }
+.bunker-event-status { color:var(--muted); font-size:.72rem; }
+.bunker-event h3 { margin:8px 0 5px; font-size:.98rem; }
+.bunker-event p { margin:0 0 10px; color:var(--muted); font-size:.86rem; line-height:1.5; }
+.bunker-event .bunker-resolution { color:var(--text); }
+.bunker-event .btn { min-height:40px; white-space:normal; }
+.bunker-problems { margin:12px 0; padding:12px; border-radius:12px; background:rgba(220,153,95,.08); }
+.bunker-problems .small { margin:5px 0 0; }
+.bunker-final-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:12px 0 18px; }
+.bunker-final-stats > div { display:flex; flex-direction:column; gap:5px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; }
+.bunker-final-stats span { color:var(--muted); font-size:.78rem; }
+.bunker-final-stats strong { font-size:.95rem; }
+.bunker-timeline { display:grid; gap:10px; margin:10px 0 18px; }
+.bunker-timeline-item { display:grid; grid-template-columns:76px minmax(0,1fr); gap:12px; padding:11px 0; border-top:1px solid var(--line); }
+.bunker-timeline-item > span { color:var(--muted); font-size:.75rem; }
+.bunker-timeline-item p { margin:4px 0 0; color:var(--muted); font-size:.85rem; line-height:1.5; }
+.reveal-btn { min-height:44px; touch-action:manipulation; }
+@media (max-width:700px) {
+  .bunker-resource-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .bunker-resource-grid .bunker-resource:last-child { grid-column:span 2; }
+  .bunker-infrastructure,.bunker-event-grid,.bunker-final-stats { grid-template-columns:1fr; }
+  .bunker-capacity { font-size:.8rem; }
+  .bunker-event { padding:12px; }
+  .bunker-event .btn { width:100%; }
+  .bunker-timeline-item { grid-template-columns:62px minmax(0,1fr); gap:8px; }
+}
+.discovery-history { padding-left: 12px; border-left: 2px solid rgba(255,138,36,.42); color: #c3ccd2; }
+.final-world-chronicle { margin-top: 14px; }
+.final-world-chronicle > h2 { margin-top: 6px; }
