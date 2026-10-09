@@ -1,0 +1,17 @@
+{
+  "seed": 20261009,
+  "trials": 500,
+  "setup": "6 generated characters; 3 retained in bunker; mid-level ventilation and sanitation. This is a smoke simulation, not a full balance certification.",
+  "outcomes": {
+    "survived": 255,
+    "died": 245,
+    "uncontrolledInfection": 152,
+    "infectionContained": 115
+  },
+  "survivalRate": 0.51,
+  "scorePercentiles": {
+    "p10": 34,
+    "median": 54,
+    "p90": 61
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "passed": 41,
+  "total": 41,
+  "tests": [
+    {
+      "name": "online transport uses WebSockets instead of PeerJS/WebRTC",
+      "ok": true
+    },
+    {
+      "name": "Bunker resources and systems render as narrative prose, not metric tiles or progress bars",
+      "ok": true
+    },
+    {
+      "name": "Catastrophe summary explains scenario pressures in plain language",
+      "ok": true
+    },
+    {
+      "name": "Long-experience fact does not predetermine the character profession",
+      "ok": true
+    },
+    {
+      "name": "Fill bot lobby reaches six participants",
+      "ok": true
+    },
+    {
+      "name": "Host force-finish reveals up to two random hidden characteristics and advances turn",
+      "ok": true
+    },
+    {
+      "name": "Normal turn button stays disabled until every allowed card is revealed, then becomes active",
+      "ok": true
+    },
+    {
+      "name": "Normal finish-turn handler cannot advance before quota, but can advance after quota",
+      "ok": true
+    },
+    {
+      "name": "Host skip control is clearly separated from normal turn completion",
+      "ok": true
+    },
+    {
+      "name": "Food storage event resolves through a surviving warehouse specialist",
+      "ok": true
+    },
+    {
+      "name": "Unknown medicine remains unresolved without pharmacist or doctor",
+      "ok": true
+    },
+    {
+      "name": "Foreign language medicine problem resolves via English teacher",
+      "ok": true
+    },
+    {
+      "name": "Bots can submit votes on behalf of host",
+      "ok": true
+    },
+    {
+      "name": "Host can kick a non-host participant during a game",
+      "ok": true
+    },
+    {
+      "name": "Automatic bot votes fill only missing bot votes",
+      "ok": true
+    },
+    {
+      "name": "Kicked players are removed immediately without defense or farewell phases",
+      "ok": true
+    },
+    {
+      "name": "Bunker event problems have no manual repair button in rendered panel",
+      "ok": true
+    },
+    {
+      "name": "Finish game resolves problems using non-eliminated survivors before bunkered flags are assigned",
+      "ok": true
+    },
+    {
+      "name": "Landing page has five compact stage steps and a no-wrap layout",
+      "ok": true
+    },
+    {
+      "name": "Host test tools are available for lobby, turns, voting, and removal",
+      "ok": true
+    },
+    {
+      "name": "Character decks include infectious illnesses, disability variations, autism and experience twists",
+      "ok": true
+    },
+    {
+      "name": "A hidden zombie-virus carrier can trigger bunker-wide failure without containment",
+      "ok": true
+    },
+    {
+      "name": "Medical staff and high ventilation can contain infection instead of forcing automatic failure",
+      "ok": true
+    },
+    {
+      "name": "Dementia reduces the specific boast about professional memory without erasing all skills",
+      "ok": true
+    },
+    {
+      "name": "Final screen prioritizes outcome banner and keeps extra reports behind collapsed details",
+      "ok": true
+    },
+    {
+      "name": "Three-minute discussion timer expires once and resolves voting without speeches",
+      "ok": true
+    },
+    {
+      "name": "Kicking a participant during combined discussion does not restart the shared timer",
+      "ok": true
+    },
+    {
+      "name": "Group can use one pass; it schedules two eliminations in the next round",
+      "ok": true
+    },
+    {
+      "name": "Host vote panel exposes per-bot skip checkboxes only when skip is available",
+      "ok": true
+    },
+    {
+      "name": "Personal turn and group discussion use three-minute deadlines",
+      "ok": true
+    },
+    {
+      "name": "Final epilogues read like concise factual bunker-log entries",
+      "ok": true
+    },
+    {
+      "name": "Kick during discussion resolves when all remaining votes were already fixed",
+      "ok": true
+    },
+    {
+      "name": "A reconnect session is echoed at assignment and stale-session vote messages are rejected",
+      "ok": true
+    },
+    {
+      "name": "Kick invalidates only votes targeting the removed participant and leaves the timer running",
+      "ok": true
+    },
+    {
+      "name": "Every party receives distinct random large gear and backpack items, including comic useless finds",
+      "ok": true
+    },
+    {
+      "name": "Player may change a vote until locking it, then changes are rejected",
+      "ok": true
+    },
+    {
+      "name": "A group that kicked one player can still pass the following normal round once",
+      "ok": true
+    },
+    {
+      "name": "Discussion timeout in a mandatory double-elimination round removes two players",
+      "ok": true
+    },
+    {
+      "name": "Bots automatically cast votes when a voting phase begins",
+      "ok": true
+    },
+    {
+      "name": "A deciding vote eliminates the target immediately without any speech phase",
+      "ok": true
+    },
+    {
+      "name": "Returning to lobby preserves live player identities and peer connections but resets the game",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,474 @@
+{
+  "results": [
+    {
+      "test": "landing page rendered",
+      "pass": true
+    },
+    {
+      "test": "client scripts available",
+      "pass": true
+    },
+    {
+      "test": "lobby has no fake slots and only 6 real players",
+      "pass": true,
+      "detail": {
+        "players": 6,
+        "realCount": 6
+      }
+    },
+    {
+      "test": "five players are blocked; six synchronized players may start",
+      "pass": true,
+      "detail": {
+        "fiveRejected": true,
+        "game": {
+          "phase": "turns",
+          "round": 1,
+          "count": 6,
+          "revealButtons": 10,
+          "journalVisible": false,
+          "bunkerPanel": true,
+          "situationText": "Что означает эта катастрофа. Запасы пищи и возможность наладить её производство становятся ключевыми. Отказ техники может нарушить сразу несколько систем бункера. Сценарные условия означают, что расход пищи будет повышен, нагрузка на обогрев будет немного выше обычной, нагрузка на вентиляцию и защиту среды будет немного выше обычной.\n\nУбежище — Старый военный бункер. Прочный, но часть систем требует обслуживания. Внутри можно разместить 3 человека; изначально убежище рассчитано на 3 человека.\n\nЗапасы. Сейчас еды примерно на 14 месяцев; для долгой автономии потребуется наладить пополнение; воды примерно на 24 месяца при обычном расходе. Энергорезерв высокий, но энергозависимое оборудование всё равно требует бережного режима. Также материалов для ремонта пока нет, а медицинский запас пока отсутствует.\n\nИнфраструктура. Вентиляция работает, но требует регулярного контроля; электросистема работает, но требует регулярного контроля; конструкции в целом надёжны, но нуждаются в осмотре; санитария поддерживается, но требует дисциплины; восстановление воды пока практически не налажено; собственное производство пищи ещё не налажено.",
+          "oldMetrics": false,
+          "hostDrawerExists": true,
+          "hostDrawerCollapsed": true,
+          "hostDrawerFixed": true
+        }
+      }
+    },
+    {
+      "test": "six connected/ready players can start the game",
+      "pass": true,
+      "detail": {
+        "phase": "turns",
+        "round": 1,
+        "count": 6,
+        "revealButtons": 10,
+        "journalVisible": false,
+        "bunkerPanel": true,
+        "situationText": "Что означает эта катастрофа. Запасы пищи и возможность наладить её производство становятся ключевыми. Отказ техники может нарушить сразу несколько систем бункера. Сценарные условия означают, что расход пищи будет повышен, нагрузка на обогрев будет немного выше обычной, нагрузка на вентиляцию и защиту среды будет немного выше обычной.\n\nУбежище — Старый военный бункер. Прочный, но часть систем требует обслуживания. Внутри можно разместить 3 человека; изначально убежище рассчитано на 3 человека.\n\nЗапасы. Сейчас еды примерно на 14 месяцев; для долгой автономии потребуется наладить пополнение; воды примерно на 24 месяца при обычном расходе. Энергорезерв высокий, но энергозависимое оборудование всё равно требует бережного режима. Также материалов для ремонта пока нет, а медицинский запас пока отсутствует.\n\nИнфраструктура. Вентиляция работает, но требует регулярного контроля; электросистема работает, но требует регулярного контроля; конструкции в целом надёжны, но нуждаются в осмотре; санитария поддерживается, но требует дисциплины; восстановление воды пока практически не налажено; собственное производство пищи ещё не налажено.",
+        "oldMetrics": false,
+        "hostDrawerExists": true,
+        "hostDrawerCollapsed": true,
+        "hostDrawerFixed": true
+      }
+    },
+    {
+      "test": "rendered mobile reveal buttons and bunker panel",
+      "pass": true
+    },
+    {
+      "test": "catastrophe image is followed by a prose summary of pressures, resources and systems",
+      "pass": true,
+      "detail": {
+        "summaryVisible": true,
+        "legacyMetricsPresent": false
+      }
+    },
+    {
+      "test": "active journal removed from UI",
+      "pass": true
+    },
+    {
+      "test": "host controls start collapsed in a compact fixed drawer",
+      "pass": true,
+      "detail": {
+        "exists": true,
+        "collapsed": true,
+        "fixed": true
+      }
+    },
+    {
+      "test": "visible Reveal button opens one chosen card and does not force-finish the turn",
+      "pass": true,
+      "detail": {
+        "mode": "game",
+        "opened": 2,
+        "buttonCount": 9,
+        "hasWaitingLabel": false,
+        "finishDisabled": true,
+        "revealedThisRound": 2
+      }
+    },
+    {
+      "test": "finish-turn button activates in glowing yellow with black text after quota; random skip remains separate",
+      "pass": true,
+      "detail": {
+        "exists": true,
+        "disabled": false,
+        "ready": true,
+        "background": "rgb(255, 223, 77)",
+        "color": "rgb(23, 23, 23)",
+        "turnReveals": 3,
+        "quota": 3,
+        "randomSkipPresent": true
+      }
+    },
+    {
+      "test": "normal finish-turn advances to next player and button becomes disabled when it is not your turn",
+      "pass": true,
+      "detail": {
+        "turnIndex": 1,
+        "disabled": true,
+        "ready": false
+      }
+    },
+    {
+      "test": "player start/capacity matrix 1,4,5 blocked; 6,7,8,15 allowed with correct capacity",
+      "pass": true,
+      "detail": {
+        "out": [
+          {
+            "n": 1,
+            "started": false,
+            "count": 1,
+            "capacity": 0
+          },
+          {
+            "n": 4,
+            "started": false,
+            "count": 4,
+            "capacity": 0
+          },
+          {
+            "n": 5,
+            "started": false,
+            "count": 5,
+            "capacity": 0
+          },
+          {
+            "n": 6,
+            "started": true,
+            "count": 6,
+            "capacity": 3
+          },
+          {
+            "n": 7,
+            "started": true,
+            "count": 7,
+            "capacity": 3
+          },
+          {
+            "n": 8,
+            "started": true,
+            "count": 8,
+            "capacity": 4
+          },
+          {
+            "n": 15,
+            "started": true,
+            "count": 15,
+            "capacity": 7
+          }
+        ],
+        "distinctIds": 6
+      }
+    },
+    {
+      "test": "sixteenth participant rejected and lobby remains capped at 15",
+      "pass": true,
+      "detail": {
+        "before": 15,
+        "after": 15,
+        "rejected": true
+      }
+    },
+    {
+      "test": "reconnect during the game restores same player, cards, reveal state, vote and round",
+      "pass": true,
+      "detail": {
+        "samePlayer": true,
+        "cardPreserved": true,
+        "peerUpdated": true,
+        "revealsPreserved": true,
+        "votePreserved": true,
+        "phasePreserved": true,
+        "roundPreserved": true,
+        "assigned": true
+      }
+    },
+    {
+      "test": "progressive catastrophe reveals and up to 5 bunker events",
+      "pass": true,
+      "detail": {
+        "first": {
+          "cat": 1,
+          "bunker": 1,
+          "discoveries": 1
+        },
+        "final": {
+          "cat": 4,
+          "bunker": 5,
+          "plan": 5,
+          "uniqueStages": 5
+        },
+        "reportScore": 47,
+        "hasFinalBunker": true
+      }
+    },
+    {
+      "test": "catastrophe chapters are revealed progressively and summarized in final screen",
+      "pass": true,
+      "detail": {
+        "initialHasHistory": true,
+        "revealedHasHistory": true,
+        "finalHelper": true,
+        "historyHiddenFromRawClientCat": true
+      }
+    },
+    {
+      "test": "bunker event effect applies once; relevant profession resolves problem only in final and idempotently",
+      "pass": true,
+      "detail": {
+        "first": true,
+        "second": false,
+        "foodAfterFirst": 9,
+        "foodAfterSecond": 9,
+        "resolved": true,
+        "resolvedCount": 1,
+        "resolvedAgain": 0,
+        "active": 0
+      }
+    },
+    {
+      "test": "capacity events are applied at discovery or final specialist evaluation exactly once",
+      "pass": true,
+      "detail": {
+        "immediateFirst": true,
+        "immediateSecond": false,
+        "immediateCap1": 8,
+        "immediateCap2": 8,
+        "beforeFinal": 7,
+        "hasProblem": true,
+        "resolved": true,
+        "afterFinal": 8,
+        "repeat": 0,
+        "afterRepeat": 8,
+        "materials": 2
+      }
+    },
+    {
+      "test": "stale snapshot is ignored instead of overwriting latest state",
+      "pass": true,
+      "detail": {
+        "sameObject": true,
+        "lastStateSeq": 50
+      }
+    },
+    {
+      "test": "catastrophe facts and their modifiers are applied once; final score is deterministic",
+      "pass": true,
+      "detail": {
+        "first": true,
+        "second": false,
+        "once": 1,
+        "applied": 1,
+        "modifiers": {
+          "foodNeed": 0.015,
+          "waterNeed": 0,
+          "heatNeed": 0.035,
+          "techNeed": 0,
+          "medicalNeed": 0,
+          "environmentPenalty": 0,
+          "systemsPenalty": 0
+        },
+        "before": 45,
+        "afterFirst": 45,
+        "afterSecond": 45,
+        "metricChanges": [
+          "resource",
+          "systems"
+        ],
+        "repeatA": 45,
+        "repeatB": 45
+      }
+    },
+    {
+      "test": "timer updates visible countdown without incrementing state sequence each tick",
+      "pass": true,
+      "detail": {
+        "before": 0,
+        "after": 0,
+        "textBefore": "01:06",
+        "textAfter": "00:59"
+      }
+    },
+    {
+      "test": "vote identity is derived from connection, not payload voterId",
+      "pass": true,
+      "detail": {
+        "keys": [
+          "pmv172u68-1-u6y1"
+        ],
+        "expected": "pmv172u68-1-u6y1",
+        "targetId": "pmv172u68-3-ovle"
+      }
+    },
+    {
+      "test": "network snapshot strips hidden cards, private plans and peer IDs",
+      "pass": true,
+      "detail": {
+        "ownValue": true,
+        "otherHidden": true,
+        "hasPlan": false,
+        "hasFacts": false,
+        "hasPeerId": false
+      }
+    },
+    {
+      "test": "responsive widths do not cause horizontal page overflow",
+      "pass": true,
+      "detail": [
+        {
+          "width": 320,
+          "inner": 320,
+          "scroll": 320,
+          "body": 320,
+          "pass": true
+        },
+        {
+          "width": 360,
+          "inner": 360,
+          "scroll": 360,
+          "body": 360,
+          "pass": true
+        },
+        {
+          "width": 390,
+          "inner": 390,
+          "scroll": 390,
+          "body": 390,
+          "pass": true
+        },
+        {
+          "width": 430,
+          "inner": 430,
+          "scroll": 430,
+          "body": 430,
+          "pass": true
+        },
+        {
+          "width": 768,
+          "inner": 768,
+          "scroll": 768,
+          "body": 768,
+          "pass": true
+        },
+        {
+          "width": 1024,
+          "inner": 1024,
+          "scroll": 1024,
+          "body": 1024,
+          "pass": true
+        },
+        {
+          "width": 1280,
+          "inner": 1280,
+          "scroll": 1280,
+          "body": 1280,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "test": "one pass option, double elimination after pass, and direct elimination without defense/farewell",
+      "pass": true,
+      "detail": {
+        "threeSkip": {
+          "round": 2,
+          "skipUsed": false,
+          "target": 1,
+          "phase": "turns",
+          "eliminated": 1
+        },
+        "fourSkip": {
+          "round": 2,
+          "skipUsed": true,
+          "target": 2,
+          "phase": "turns",
+          "eliminated": 0,
+          "skipDisabled": true
+        },
+        "direct": {
+          "phase": "turns",
+          "eliminated": 1,
+          "defenseQueue": 0,
+          "farewellQueue": 0
+        }
+      }
+    },
+    {
+      "test": "rendered host controls work: bot skip checkbox/random choice, three-minute timer, and kick",
+      "pass": true,
+      "detail": {
+        "checkboxes": 5,
+        "firstSkip": {
+          "count": 1,
+          "first": true,
+          "button": true,
+          "drawerOpen": true
+        },
+        "randomSkip": {
+          "count": 5,
+          "allBotsHaveChoice": true
+        },
+        "minuteTimer": {
+          "running": true,
+          "seconds": 180
+        },
+        "kick": {
+          "eliminated": true,
+          "uiAction": true
+        }
+      }
+    },
+    {
+      "test": "HTML local CSS/JS references exist and all discussion entry points use the unified three-minute phase",
+      "pass": true,
+      "detail": {
+        "missingLocalRefs": [],
+        "timerPresets": {
+          "discussion": 180,
+          "legacySpeechEntry": 180,
+          "legacyVoteEntry": 180,
+          "phase": "discussion",
+          "deadlineSeconds": 120,
+          "functions": true
+        }
+      }
+    },
+    {
+      "test": "final screen button returns to lobby and preserves the live guest connection",
+      "pass": true,
+      "detail": {
+        "buttonVisible": true,
+        "status": "lobby",
+        "phase": "lobby",
+        "retainedNames": [
+          "Reset Host",
+          "Reset Guest"
+        ],
+        "retainedIds": [
+          "pmv172vhj-0-1n6i",
+          "pmv172vhj-1-u1k4"
+        ],
+        "originalIds": [
+          "pmv172vhj-0-1n6i",
+          "pmv172vhj-1-u1k4"
+        ],
+        "stateSeq": 81,
+        "oldStateSeq": 80,
+        "roomCode": "RESETROOM",
+        "guestPeer": "reset-peer-guest",
+        "snapshotSent": true
+      }
+    },
+    {
+      "test": "no browser runtime errors during smoke tests",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "passed": 30,
+  "total": 30
+}
