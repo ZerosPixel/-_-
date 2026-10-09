@@ -2705,6 +2705,10 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
       </div>
       <div class="turn-guidance">${g.round === 1 ? 'Профессия уже открыта автоматически. Выберите оставшиеся характеристики своего хода.' : 'Откройте нужные характеристики в секции «Мои характеристики» ниже.'}</div>
       ${canAct ? `<div class="turn-active-note"><span class="status-pip"></span> Выбирайте карты прямо в своей колоде ниже. Осталось: <strong>${remaining}</strong></div>` : '<p class="muted turn-waiting">Карты откроются для выбора, когда наступит ваш ход.</p>'}
+      <div class="turn-finish-action">
+        <button class="btn finish-turn-btn ${canAct && p && (p.revealsThisRound || 0) >= quota ? 'is-ready' : ''}" onclick="uiFinishTurn()" ${canAct && p && (p.revealsThisRound || 0) >= quota ? '' : 'disabled'}>Закончить ход</button>
+        <p class="turn-finish-hint ${canAct && p && (p.revealsThisRound || 0) >= quota ? 'is-ready' : ''}">${!canAct ? 'Кнопка станет доступна в ваш ход после открытия всех положенных карт.' : remaining > 0 ? `Откройте ещё ${remaining} ${remaining === 1 ? 'характеристику' : 'характеристики'}, чтобы закончить ход.` : 'Все положенные характеристики открыты. Можно закончить ход.'}</p>
+      </div>
     </section>`;
   }
   if (g.currentPhase === 'discussion') return `<section class="panel center"><div class="phase">Общее обсуждение</div><div class="timer">${formatTime(g.timeLeft)}</div><p class="muted">2 минуты общего обсуждения. Можно свободно обсуждать полезность персонажей.</p>${g.timerRunning ? '' : `<button class="btn primary" onclick="uiTimer(120)">Запустить 120 сек</button>`}</section>`;
@@ -2798,7 +2802,7 @@ function renderPlayerRow(p, viewer = null, forceReveal = false) {
 
 function hostControls(g, current) {
   let controls = '';
-  if (g.currentPhase === 'turns') controls = `<button class="btn primary" onclick="uiHostFinishTurn()">Завершить ход · открыть 2 случайные</button>`;
+  if (g.currentPhase === 'turns') controls = `<button class="btn skip-turn-btn" onclick="uiHostFinishTurn()">Пропустить ход · открыть 2 случайные</button><p class="small">Только если игрок отошёл или пропускает ход. Для обычного завершения игрок использует кнопку «Закончить ход».</p>`;
   else if (g.currentPhase === 'discussion') controls = `<div class="row"><button class="btn primary" onclick="uiTimer(120)">Старт 120 сек</button><button class="btn" onclick="uiSpeechesStart()">К речам</button></div>`;
   else if (g.currentPhase === 'speeches') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiNextSpeech()">Следующий</button></div>`;
   else if (g.currentPhase === 'defense') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiFinishDefense()">Дальше</button></div>`;
@@ -2922,6 +2926,12 @@ window.uiRevealOnce = (button, type) => {
   }
 };
 window.uiFinishTurn = () => {
+  const g = state.game;
+  const me = localPlayer();
+  const current = currentTurnPlayer();
+  if (!g || g.currentPhase !== 'turns' || !me || !current || current.id !== me.id || me.eliminated) return;
+  const quota = revealQuota(g.settings.playerCount, g.round);
+  if ((me.revealsThisRound || 0) < quota) return toast('Сначала откройте все характеристики, положенные в этом ходу.');
   if (state.isHost) finishTurn(); else sendToHost({ action:'finishTurn' });
 };
 window.uiVote = targetId => castVote(state.myPlayerId, targetId);
