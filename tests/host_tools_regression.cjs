@@ -60,9 +60,19 @@ test('online transport uses WebSockets instead of PeerJS/WebRTC',()=>{
   const index=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   assert(transport.includes('new WebSocket(socketUrl())'));
   assert(server.includes("pathname !== '/ws'"));
-  assert(index.includes('transport.js?v=20261009-bunker16'));
+  assert(index.includes('transport.js?v=20261009-bunker17'));
   assert(!index.includes('peerjs@'));
   assert(!transport.includes('RTCPeerConnection'));
+});
+
+test('Automatic recovery keeps the existing game screen instead of switching to the join page',()=>{
+  const app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8');
+  assert(app.includes("joinRoom(state.roomCode, state.myName, { silent: state.mode === 'game' && !!state.game })"));
+  assert(app.includes("const silentReconnect = options?.silent === true && state.mode === 'game' && !!state.game && !state.isHost"));
+  assert(app.includes("if (!silentReconnect) render();"));
+  assert(app.includes("if (state.mode !== 'game') render();"));
+  assert(app.includes("const activeGameRecovery = state.mode === 'game' && !!state.game"));
+  assert(app.includes("if (state.autoRejoinCount >= MAX_AUTO_REJOIN && !activeGameRecovery) return false"));
 });
 
 test('Bunker resources and systems render as narrative prose, not metric tiles or progress bars',()=>{

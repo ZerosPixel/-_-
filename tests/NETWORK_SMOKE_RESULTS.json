@@ -1,5 +1,5 @@
 {
-  "version": "v11",
+  "version": "v12",
   "result": "PASS",
   "tests": [
     {
@@ -34,6 +34,17 @@
         "bidirectional data exchange",
         "remote close propagation",
         "same host token retained during reconnect"
+      ]
+    },
+    {
+      "name": "Background reconnect UI regression",
+      "passed": true,
+      "checks": [
+        "existing game mode retained",
+        "player identity retained",
+        "last state sequence retained",
+        "game DOM remains unchanged",
+        "joining screen does not appear"
       ]
     }
   ],

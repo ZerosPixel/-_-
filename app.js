@@ -2031,8 +2031,12 @@ const MAX_AUTO_REJOIN = 24;
 // участник видит «подключаемся…», а не ошибку «нет связи / комната не найдена».
 function scheduleAutoRejoin() {
   if (state.isHost || state.mode === 'kicked' || !state.roomCode || !state.myName) return false;
-  if (state.autoRejoinCount >= MAX_AUTO_REJOIN) return false;
-  state.autoRejoinCount++;
+  const activeGameRecovery = state.mode === 'game' && !!state.game;
+  // Before a player gets into the game, limit retries. During an active game,
+  // keep retrying in the background forever with a capped delay; never force a
+  // screen reset simply because a long outage exceeded the initial retry budget.
+  if (state.autoRejoinCount >= MAX_AUTO_REJOIN && !activeGameRecovery) return false;
+  state.autoRejoinCount = Math.min(MAX_AUTO_REJOIN, state.autoRejoinCount + 1);
   const delay = Math.min(1500 * state.autoRejoinCount, 8000);
   setBadge(`подключаемся к комнате ${state.roomCode}…`);
   clearTimeout(state.autoRejoinTimer);
@@ -2040,13 +2044,16 @@ function scheduleAutoRejoin() {
     state.autoRejoinTimer = null;
     if (state.isHost || state.mode === 'kicked') return;
     state.joinBusy = false;
-    joinRoom(state.roomCode, state.myName);
+    // Recover an established game in the background: keep the current snapshot
+    // visible rather than switching to the full-screen joining view after a blip.
+    joinRoom(state.roomCode, state.myName, { silent: state.mode === 'game' && !!state.game });
   }, delay);
   return true;
 }
 
-function joinRoom(roomCode, name) {
+function joinRoom(roomCode, name, options = {}) {
   if (!roomCode || state.joinBusy) return;
+  const silentReconnect = options?.silent === true && state.mode === 'game' && !!state.game && !state.isHost;
   if (typeof Peer !== 'function') {
     state.joinBusy = false;
     state.joinError = 'Не удалось загрузить сетевой модуль. Обновите страницу или проверьте доступ к CDN.';
@@ -2063,14 +2070,18 @@ function joinRoom(roomCode, name) {
   state.connectionLost = false;
   state.signalingRetryCount = 0;
   state.isHost = false;
-  state.myPlayerId = null;
-  state.lastStateSeq = 0;
+  // Keep identity and the last authoritative snapshot while silently recovering
+  // an established session. Fresh joins still start from a clean state.
+  if (!silentReconnect) {
+    state.myPlayerId = null;
+    state.lastStateSeq = 0;
+    state.mode = 'joining';
+  }
   state.hostId = `bunker-${String(roomCode).trim().toUpperCase()}`;
   state.roomCode = String(roomCode).trim().toUpperCase();
   rememberName(name);
-  state.mode = 'joining';
-  setBadge(`подключение к ${state.roomCode}…`);
-  render();
+  setBadge(silentReconnect ? `восстанавливаем связь с ${state.roomCode}…` : `подключение к ${state.roomCode}…`);
+  if (!silentReconnect) render();
   closeClientPeer();
 
   const peer = new Peer(undefined, { debug: 1 });
@@ -2087,7 +2098,7 @@ function joinRoom(roomCode, name) {
       state.joinBusy = true;
       state.joinError = '';
       state.connectionLost = false;
-      render();
+      if (state.mode !== 'game') render();
       return;
     }
     state.joinBusy = false;
@@ -2098,7 +2109,8 @@ function joinRoom(roomCode, name) {
     state.pendingHost = null;
     state.peer = null;
     setBadge('ошибка связи');
-    render();
+    if (state.mode !== 'game') render();
+    else toast('Связь пока не восстановлена. Игра останется на экране; подключение продолжится автоматически.');
   };
   state.joinTimeoutHandle = setTimeout(() => {
     if (attemptIsCurrent() && state.joinBusy) failAttempt('Не удалось получить состояние комнаты. Попробуйте подключиться ещё раз.');
@@ -2114,7 +2126,8 @@ function joinRoom(roomCode, name) {
       if (!attemptIsCurrent()) return;
       setBadge(`комната ${state.roomCode} · получение состояния`, false);
       // The host sends hello; registration happens exactly once in handleClientMessage.
-      render();
+      // Do not redraw the in-game view for a background reconnection attempt.
+      if (state.mode !== 'game') render();
     });
     conn.on('close', () => {
       if (!attemptIsCurrent() || state.mode === 'kicked') return;
@@ -2123,14 +2136,14 @@ function joinRoom(roomCode, name) {
       if (scheduleAutoRejoin()) {
         state.joinBusy = true;
         state.connectionLost = false;
-        render();
+        if (state.mode !== 'game') render();
         return;
       }
       state.connectionLost = true;
       state.joinBusy = false;
       setBadge('нет связи с комнатой');
-      toast('Связь с хостом потеряна. Можно переподключиться.');
-      render();
+      toast('Связь с хостом потеряна. Игра останется на экране; восстановление продолжится автоматически.');
+      if (state.mode !== 'game') render();
     });
     conn.on('error', err => {
       if (!attemptIsCurrent()) return;
@@ -2221,6 +2234,15 @@ function handleClientMessage(msg, attempt = state.joinAttemptId) {
     state.autoRejoinCount = 0;
     const sequence = Number(game.stateSeq) || 0;
     if (sequence && sequence <= state.lastStateSeq) {
+      // The same snapshot can arrive after a reconnect. That still confirms the
+      // transport recovered; clear retry flags instead of staying in reconnecting.
+      state.mode = 'game';
+      state.joinBusy = false;
+      state.joinError = '';
+      state.connectionLost = false;
+      state.signalingRetryCount = 0;
+      clearJoinTimeout();
+      setBadge(game.status === 'lobby' ? 'лобби синхронизировано' : 'в игре', true);
       try { state.pendingHost?.send({ action: 'stateAck', sequence: state.lastStateSeq, sessionId: state.joinSessionId }); } catch {}
       return;
     }

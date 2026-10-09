@@ -1,9 +1,13 @@
 {
-  "passed": 41,
-  "total": 41,
+  "passed": 42,
+  "total": 42,
   "tests": [
     {
       "name": "online transport uses WebSockets instead of PeerJS/WebRTC",
+      "ok": true
+    },
+    {
+      "name": "Automatic recovery keeps the existing game screen instead of switching to the join page",
       "ok": true
     },
     {

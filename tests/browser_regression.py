@@ -257,6 +257,29 @@ with sync_playwright() as p:
       return {buttonVisible,status:state.game.status,phase:state.game.currentPhase,retainedNames:state.game.players.map(p=>p.name),retainedIds:state.game.players.map(p=>p.id),originalIds:[names[0],names[1]].map(name=>g.players.find(p=>p.name===name).id),stateSeq:state.game.stateSeq,oldStateSeq:80,roomCode:state.roomCode,guestPeer:state.game.players.find(p=>p.name===names[1])?.peerId,snapshotSent:sent.some(m=>m.type==='state' && m.game.status==='lobby')};
     }''')
     results.append({'test':'final screen button returns to lobby and preserves the live guest connection','pass':lobby_reset['buttonVisible'] and lobby_reset['status']=='lobby' and lobby_reset['phase']=='lobby' and lobby_reset['retainedNames']==['Reset Host','Reset Guest'] and lobby_reset['retainedIds']==lobby_reset['originalIds'] and lobby_reset['stateSeq']>lobby_reset['oldStateSeq'] and lobby_reset['roomCode']=='RESETROOM' and lobby_reset['guestPeer']=='reset-peer-guest' and lobby_reset['snapshotSent'],'detail':lobby_reset})
+    # A transient transport retry while a participant is in-game must not replace
+    # the game DOM with the full-screen joining UI or clear the current identity.
+    silent_reconnect=page.evaluate('''() => {
+      const originalPeer=window.Peer;
+      class StubPeer {
+        constructor(){this.id='client-silent-reconnect';this.handlers={};this.destroyed=false;this.disconnected=false;}
+        on(name,fn){(this.handlers[name] ||= []).push(fn);return this;}
+        destroy(){this.destroyed=true;}
+      }
+      state.isHost=false;state.mode='game';state.joinBusy=false;state.game=createGame({playerCount:6},['Хост','А','Б','В','Г','Д'],0);
+      state.game.status='playing';state.game.currentPhase='turns';state.game.players.forEach((p,i)=>{p.occupied=true;p.connected=true;p.ready=true;p.clientId=`silent-${i}`;p.slot=i+1;});
+      state.roomCode='SILENT12';state.myName='Игрок';state.myPlayerId=state.game.players[1].id;state.lastStateSeq=42;state.peer=null;state.pendingHost=null;
+      render();const before=document.querySelector('#app').innerHTML;const playerId=state.myPlayerId;
+      window.Peer=StubPeer;joinRoom('SILENT12','Игрок',{silent:true});
+      const result={mode:state.mode,playerRetained:state.myPlayerId===playerId,sequenceRetained:state.lastStateSeq===42,domRetained:document.querySelector('#app').innerHTML===before,joiningScreenVisible:!!document.querySelector('.connecting-room')};
+      clearJoinTimeout();try{state.peer?.destroy();}catch{}state.peer=null;state.joinBusy=false;window.Peer=originalPeer;
+      // Active-game recovery must keep retrying beyond the initial 24-attempt
+      // budget, but use the capped backoff and do not redraw the screen.
+      state.autoRejoinCount=24;const retryContinues=scheduleAutoRejoin();clearTimeout(state.autoRejoinTimer);state.autoRejoinTimer=null;
+      result.retryContinues=retryContinues;
+      return result;
+    }''')
+    results.append({'test':'automatic background reconnect does not switch to joining screen or clear game identity','pass':silent_reconnect['mode']=='game' and silent_reconnect['playerRetained'] and silent_reconnect['sequenceRetained'] and silent_reconnect['domRetained'] and not silent_reconnect['joiningScreenVisible'] and silent_reconnect['retryContinues'],'detail':silent_reconnect})
     results.append({'test':'no browser runtime errors during smoke tests','pass':len(errors)==0,'detail':errors[:10]})
     browser.close()
 report={'results':results,'passed':sum(bool(r['pass']) for r in results),'total':len(results)}
