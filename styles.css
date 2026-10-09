@@ -670,3 +670,53 @@ input:focus, select:focus { border-color: rgba(255,138,36,.7); box-shadow: 0 0 0
   .discussion-vote-head { align-items: flex-start; }
   .discussion-vote-head .timer { font-size: 34px; }
 }
+
+/* Host tools stay out of the way until opened; content scrolls inside the compact dock. */
+.sticky-action.host-tools-drawer {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 40;
+  width: min(390px, calc(100vw - 24px));
+  margin: 0;
+}
+.host-tools-drawer > summary {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  padding: 11px 14px;
+  border: 1px solid rgba(255,138,36,.45);
+  border-radius: 999px;
+  background: rgba(14,19,24,.96);
+  color: var(--text);
+  box-shadow: 0 8px 28px rgba(0,0,0,.35);
+  cursor: pointer;
+  list-style: none;
+  font-size: .82rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.host-tools-drawer > summary::-webkit-details-marker { display: none; }
+.host-tools-drawer[open] > summary { border-radius: 12px 12px 0 0; }
+.host-tools-drawer > .panel {
+  max-height: min(46vh, 440px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 12px;
+  border-radius: 14px 0 14px 14px;
+  background: rgba(12,17,22,.985);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 46px rgba(0,0,0,.46);
+}
+.host-tools-drawer .host-controls-main { display: grid; gap: 10px; }
+.host-tools-drawer .host-controls-actions { min-width: 0; width: 100%; gap: 7px; }
+.host-tools-drawer .host-controls-actions > p { margin: 0; }
+.host-tools-drawer .host-kick-list { max-height: 22vh; overflow: auto; }
+@media (max-width: 760px) {
+  .sticky-action.host-tools-drawer { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); width: min(350px, calc(100vw - 16px)); }
+  .host-tools-drawer > .panel { max-height: 42vh; padding: 10px; }
+}

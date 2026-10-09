@@ -8,6 +8,12 @@ const BADGE = document.getElementById('connectionBadge');
 const TOAST = document.getElementById('toast');
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = 15;
+const RTC_CONFIG = { iceServers: [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:global.stun.twilio.com:3478' }
+], iceCandidatePoolSize: 4 };
 
 const CARD_TYPES = [
   ['biology', 'Пол / возраст'],
@@ -295,6 +301,7 @@ const state = {
   myPlayerId: null,
   myName: '',
   clientId: null,
+  joinSessionId: null,
   joinBusy: false,
   joinError: '',
   joinTimeoutHandle: null,
@@ -307,6 +314,7 @@ const state = {
   reconnectInProgress: false,
   signalingRetryCount: 0,
   keepScreenAwake: false,
+  hostToolsOpen: false,
   wakeLock: null,
   hostReconnectTimer: null,
   game: null
@@ -1852,7 +1860,7 @@ function sendToHost(message) {
     return false;
   }
   try {
-    conn.send(message);
+    conn.send({ ...message, sessionId: state.joinSessionId || undefined });
     return true;
   } catch (error) {
     console.warn('Не удалось отправить действие хосту', error);
@@ -1868,6 +1876,7 @@ function handleHostMessage(conn, msg) {
     return;
   }
   if (msg.action === 'stateAck') {
+    if (conn.metadata?.sessionId && msg.sessionId !== conn.metadata.sessionId) return;
     const pid = conn.metadata?.playerId;
     const player = pid ? playerById(pid) : null;
     if (!player || player.peerId !== conn.peer) return;
@@ -1884,6 +1893,7 @@ function handleHostMessage(conn, msg) {
     return;
   }
 
+  if (conn.metadata?.sessionId && msg.sessionId !== conn.metadata.sessionId) return;
   const playerId = conn.metadata?.playerId;
   const player = playerId ? playerById(playerId) : null;
   if (!player || player.peerId !== conn.peer || !player.connected) return;
@@ -1971,7 +1981,7 @@ function createHost(name) {
   state.roomCode = makeRoomCode();
   state.hostId = `bunker-${state.roomCode}`;
   rememberName(name);
-  const peer = new Peer(state.hostId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } });
+  const peer = new Peer(state.hostId, { debug: 1, config: RTC_CONFIG });
   state.peer = peer;
   setBadge('создаём комнату…');
   peer.on('open', () => {
@@ -2023,9 +2033,11 @@ function joinRoom(roomCode, name) {
   }
   clearJoinTimeout();
   const attempt = ++state.joinAttemptId;
+  state.joinSessionId = `session-${attempt}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   state.joinBusy = true;
   state.joinError = '';
   state.connectionLost = false;
+  state.signalingRetryCount = 0;
   state.isHost = false;
   state.myPlayerId = null;
   state.lastStateSeq = 0;
@@ -2037,7 +2049,7 @@ function joinRoom(roomCode, name) {
   render();
   closeClientPeer();
 
-  const peer = new Peer(undefined, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } });
+  const peer = new Peer(undefined, { debug: 1, config: RTC_CONFIG });
   state.peer = peer;
   const attemptIsCurrent = () => attempt === state.joinAttemptId && state.peer === peer;
   const failAttempt = message => {
@@ -2055,7 +2067,7 @@ function joinRoom(roomCode, name) {
   };
   state.joinTimeoutHandle = setTimeout(() => {
     if (attemptIsCurrent() && state.joinBusy) failAttempt('Не удалось получить состояние комнаты. Попробуйте подключиться ещё раз.');
-  }, 18000);
+  }, 30000);
 
   peer.on('open', myId => {
     if (!attemptIsCurrent()) return;
@@ -2079,7 +2091,11 @@ function joinRoom(roomCode, name) {
       toast('Связь с хостом потеряна. Можно переподключиться.');
       render();
     });
-    conn.on('error', err => { if (attemptIsCurrent()) console.warn('PeerJS data connection error', err); });
+    conn.on('error', err => {
+      if (!attemptIsCurrent()) return;
+      console.warn('PeerJS data connection error', err);
+      if (state.joinBusy) failAttempt('Канал связи оборвался до получения состояния комнаты. Проверьте сеть и попробуйте снова.');
+    });
   });
   peer.on('error', err => {
     if (!attemptIsCurrent()) return;
@@ -2109,14 +2125,18 @@ function handleClientMessage(msg, attempt = state.joinAttemptId) {
     if (conn?.open && !conn.metadata?.registrationSent) {
       // A local flag on the DataConnection prevents duplicate registration messages.
       conn.metadata = { ...(conn.metadata || {}), registrationSent: true };
-      conn.send({ action: 'joinLobby', name: state.myName, peerId: state.myId, clientId: state.clientId });
+      conn.send({ action: 'joinLobby', name: state.myName, peerId: state.myId, clientId: state.clientId, sessionId: state.joinSessionId });
     }
     return;
   }
   if (msg.type === 'assigned') {
-    if (!msg.playerId) return;
+    if (!msg.playerId || (msg.sessionId && msg.sessionId !== state.joinSessionId)) return;
     state.myPlayerId = String(msg.playerId);
     setBadge(`комната ${state.roomCode} · синхронизация`, false);
+    // Assignment is not readiness: explicitly request a current snapshot in case
+    // the initial snapshot was lost while the mobile browser was resuming.
+    try { state.pendingHost?.send({ action: 'requestState', sessionId: state.joinSessionId }); }
+    catch (error) { console.warn('Initial state request failed', error); }
     return;
   }
   if (msg.type === 'error') {
@@ -2159,7 +2179,7 @@ function handleClientMessage(msg, attempt = state.joinAttemptId) {
     if (!state.myPlayerId || !game.players.some(p => p.id === state.myPlayerId)) return;
     const sequence = Number(game.stateSeq) || 0;
     if (sequence && sequence <= state.lastStateSeq) {
-      try { state.pendingHost?.send({ action: 'stateAck', sequence: state.lastStateSeq }); } catch {}
+      try { state.pendingHost?.send({ action: 'stateAck', sequence: state.lastStateSeq, sessionId: state.joinSessionId }); } catch {}
       return;
     }
     // Apply first, then acknowledge. Transport/open alone is not considered ready.
@@ -2173,7 +2193,7 @@ function handleClientMessage(msg, attempt = state.joinAttemptId) {
     clearJoinTimeout();
     setBadge(game.status === 'lobby' ? 'лобби синхронизировано' : 'в игре', true);
     render();
-    try { state.pendingHost?.send({ action: 'stateAck', sequence }); }
+    try { state.pendingHost?.send({ action: 'stateAck', sequence, sessionId: state.joinSessionId }); }
     catch (error) { console.warn('State acknowledgement failed', error); }
   }
 }
@@ -2188,6 +2208,12 @@ function handleHostJoinLobby(conn, msg) {
     return true;
   }
   let target = state.game.players.find(p => p.clientId === clientId);
+
+  if (target?.eliminated) {
+    try { conn.send({ type: 'kicked', message: 'Вы уже выбыли из этой партии.' }); } catch {}
+    setTimeout(() => { try { conn.close(); } catch {} }, 250);
+    return true;
+  }
 
   // A returning player keeps the same slot, cards, avatar identity and vote/state.
   if (target) {
@@ -2219,9 +2245,9 @@ function handleHostJoinLobby(conn, msg) {
   target.peerId = conn.peer;
   target.connected = true;
   target.ready = false; // Ready means a current state snapshot was applied and acknowledged.
-  conn.metadata = { ...(conn.metadata || {}), playerId: target.id, clientId };
+  conn.metadata = { ...(conn.metadata || {}), playerId: target.id, clientId, sessionId: String(msg.sessionId || `legacy-${conn.peer}-${Date.now().toString(36)}`) };
   state.connections.set(conn.peer, conn);
-  try { conn.send({ type: 'assigned', playerId: target.id, roomCode: state.roomCode }); }
+  try { conn.send({ type: 'assigned', playerId: target.id, roomCode: state.roomCode, sessionId: conn.metadata.sessionId }); }
   catch (error) { console.warn('assignment failed', error); return true; }
   state.game.log.push(`${target.name} вошёл в комнату.`);
   syncAndRender();
@@ -2234,14 +2260,22 @@ function kickPlayer(playerId) {
   if (g.status === 'finished') return toast('Партия уже завершена.');
   const p = playerById(playerId);
   if (!p || p.hostPlayer || p.eliminated) return toast('Этот игрок недоступен для удаления.');
-  const conn = p.peerId ? state.connections.get(p.peerId) : null;
+
+  // Send a terminal notice before closing; immediate close can win a race on mobile.
+  const peerId = p.peerId;
+  const conn = peerId ? state.connections.get(peerId) : null;
+  if (peerId) state.connections.delete(peerId);
+  p.peerId = null; // stale close handlers cannot mutate this player's next session
   if (conn?.open) {
     try { conn.send({ type: 'kicked', message: 'Хост удалил вас из комнаты.' }); } catch {}
+    setTimeout(() => { try { conn.close(); } catch {} }, 250);
+  } else {
+    try { conn?.close(); } catch {}
   }
-  if (p.peerId) state.connections.delete(p.peerId);
-  try { conn?.close(); } catch {}
+
   if (g.status === 'lobby') {
     g.players = g.players.filter(item => item.id !== p.id);
+    g.log.push(`Хост удалил ${p.name} из комнаты.`);
   } else {
     const previousPhase = g.currentPhase;
     const orderBeforeRemoval = orderedActive();
@@ -2252,19 +2286,25 @@ function kickPlayer(playerId) {
     p.connected = false;
     p.ready = false;
     p.bunkered = false;
+    p.vote = null;
     delete g.votes[p.id];
     delete g.voteLocks[p.id];
     delete g.skipChoices[p.id];
+
+    // A vote for a removed target is invalid. Unlock only those voters so they can reselect.
+    const stillActiveIds = new Set(activePlayers().map(player => player.id));
     Object.keys(g.votes || {}).forEach(voterId => {
-      if (g.votes[voterId] === p.id) {
+      if (!stillActiveIds.has(g.votes[voterId])) {
         delete g.votes[voterId];
-        delete g.voteLocks[voterId]; // their locked selection is no longer valid
+        g.voteLocks[voterId] = false;
+        const voter = playerById(voterId);
+        if (voter) voter.vote = null;
       }
     });
     g.defenseQueue = (g.defenseQueue || []).filter(id => id !== p.id);
     g.defenseCandidates = (g.defenseCandidates || []).filter(id => id !== p.id);
     g.defendedThisRound = (g.defendedThisRound || []).filter(id => id !== p.id);
-    g.log.push(`Хост удалил ${p.name} из партии для тестирования.`);
+    g.log.push(`Хост удалил ${p.name} из партии.`);
 
     if (activePlayers().length <= Number(g.capacity || 0)) {
       finishGame();
@@ -2280,7 +2320,6 @@ function kickPlayer(playerId) {
       if (removedIndex < oldSpeechIndex) {
         g.currentSpeechIndex = Math.max(0, oldSpeechIndex - 1);
       } else if (removedIndex === oldSpeechIndex) {
-        // Do not leave the removed speaker's old countdown running for the next player.
         g.currentSpeechIndex = Math.max(-1, oldSpeechIndex - 1);
         if (orderedActive().length === 0) { beginVote(); return; }
         nextSpeech();
@@ -2295,15 +2334,15 @@ function kickPlayer(playerId) {
         startRevote();
         return;
       }
-    } else if (previousPhase === 'vote') {
-      const remaining = activePlayers();
-      if (remaining.length && remaining.every(voter => Object.prototype.hasOwnProperty.call(g.votes, voter.id))) {
-        finishVote();
+    } else if (previousPhase === 'discussion' || previousPhase === 'vote') {
+      // The live phase is "discussion"; "vote" is a legacy phase name.
+      const remainingVoters = eligibleVoters();
+      if (!g.votingLocked && remainingVoters.length && remainingVoters.every(voter => !!g.voteLocks?.[voter.id])) {
+        finishVote(false);
         return;
       }
     }
   }
-  if (g.status === 'lobby') g.log.push(`Хост удалил ${p.name} из комнаты.`);
   syncAndRender();
   toast('Игрок удалён.');
 }
@@ -2648,86 +2687,61 @@ function postCatastropheRoleStory(g, player, wasBunkerSpecialist = false) {
 }
 
 function finalEpilogue(g, outcome, survivors, report) {
-  const catastropheTitle = g.catastrophe?.title || 'катастрофы';
-  const cat = catastropheTitle.toLocaleLowerCase('ru-RU');
+  const catastropheTitle = g.catastrophe?.title || 'неустановленной катастрофы';
   const details = report?.details || {};
-  const resolved = details.bunkerProblemOutcomes || [];
-  const specialists = new Set(resolved.filter(x => x.resolved).map(x => x.specialist));
-  const unresolvedNames = details.activeProblems || [];
-  const facts = details.catastropheFacts || [];
-  const synergy = details.synergyReasons || [];
-  const strong = Number(details.covered || 0) >= 4 || Number(details.strongCoverage || 0) >= 2;
-  const intro = outcome.survived
-    ? seededStoryPick(g, 'epilogue-win-intro', [
-      `После ${cat} мир не вернулся к прежнему порядку. Первые месяцы были похожи не на победу, а на длинную смену без выходных: вода, еда, лекарства, ремонт и решения, которые нельзя было отложить до завтра. Но теперь у группы было главное — время, чтобы научиться жить заново.`,
-      `Когда двери наконец открылись, снаружи не оказалось ни спасательной колонны, ни готового ответа, как жить дальше. После ${cat} приходилось заново определять, что считать домом, безопасностью и достаточным запасом. Зато группа вышла наружу не случайной толпой, а людьми, которые уже прошли через общие испытания.`,
-      `Выход из бункера не стал финальной сценой с музыкой и объятиями. После ${cat} впереди были пустые дороги, незнакомые угрозы и много тяжёлой работы. Выжившие поняли простую вещь: убежище спасло их не навсегда, а до того дня, когда они смогли попробовать спасти себя самостоятельно.`
-    ])
-    : seededStoryPick(g, 'epilogue-loss-intro', [
-      `После ${cat} не осталось удобного объяснения, которое можно было бы свести к одной ошибке. Бункер дал группе время, но время само по себе не чинит системы, не создаёт воду и не заставляет людей доверять друг другу. Когда запас прочности закончился, каждая незакрытая проблема потребовала свою цену.`,
-      `Последние дни после ${cat} проходили не как одна большая катастрофа, а как последовательность маленьких потерь. Сначала приходилось выбирать, что отключить; потом — чем пожертвовать; наконец — кого уже невозможно защитить. Бункер держался дольше, чем казалось возможным, но не смог заменить целый мир.`,
-      `В журнале убежища не нашлось красивой последней фразы. Там остались цифры запасов, список неисправностей и короткие записи о людях, пытавшихся исправить положение. После ${cat} группа оказалась перед задачей сложнее самого входа в бункер — сохранить работоспособную систему и не растерять людей по дороге.`
-    ]);
+  const resources = details.bunkerResources || g.bunkerState?.resources || {};
+  const capacity = details.bunkerCapacity ?? g.bunkerState?.capacity?.current ?? g.capacity ?? 0;
+  const resolved = g.bunkerState?.resolvedProblems || [];
+  const unresolved = g.bunkerState?.activeProblems || [];
+  const outcomes = details.bunkerProblemOutcomes || [];
+  const discoveries = details.catastropheFacts || g.catastropheReveals || [];
+  const cleanLabel = value => String(value ?? '').replace(/^поддерживается система бункера:\s*/i, '').replace(/\s+/g, ' ').trim();
+  const systems = [...new Set((g.bunker?.systems || []).map(cleanLabel).filter(Boolean))];
+  const groups = [...new Set((details.synergyReasons || []).map(cleanLabel).filter(Boolean))].filter(value => !systems.includes(value)).slice(0, 3);
+  const currentSurvivors = (survivors || []).filter(p => !p.eliminated && p.occupied !== false);
+  const roster = currentSurvivors.map(p => `${p.name} (${p.cards?.profession?.value || 'профессия не установлена'})`);
+  const list = (values, max = 3) => values.slice(0, max).join('; ');
+  const compactFact = fact => cleanLabel(fact?.title || fact?.text || 'Сведение без заголовка').slice(0, 180);
+  const paragraphs = [];
+  const score = Number(report?.score || 0);
+  const scoreUnit = score % 10 === 1 && score % 100 !== 11 ? 'балл' : score % 10 >= 2 && score % 10 <= 4 && !(score % 100 >= 12 && score % 100 <= 14) ? 'балла' : 'баллов';
 
-  const synergyParagraph = strong && synergy.length
-    ? seededStoryPick(g, 'epilogue-synergy-strong', [
-      `Решающим преимуществом стала не одна профессия, а связка навыков: ${synergy.slice(0, 3).join(', ')}. Там, где один замечал проблему, другой мог устранить её, а третий — объяснить остальным, как не допустить повторения. Этот способ работать вместе пережил стены убежища.`,
-      `В итогах особенно заметны сочетания ${synergy.slice(0, 3).join(', ')}. Сами по себе эти навыки не гарантировали спасения, но вместе превратились в систему: обнаружить угрозу, оценить последствия, сделать работу и проверить результат. Внешний мир быстро показал, что именно такая цепочка действий нужна не меньше, чем в бункере.`,
-      `Группа выиграла время благодаря комбинациям ${synergy.slice(0, 3).join(', ')}. Это не выглядело как подвиг одного человека: скорее, несколько разных сильных сторон закрывали слабые места друг друга. После выхода такая взаимозаменяемость помогла распределять работу и не зависеть от единственного специалиста.`
-    ])
-    : synergy.length
-      ? `Некоторые связки — ${synergy.slice(0, 3).join(', ')} — оказались полезны, хотя группа не смогла объединить все сильные стороны в устойчивую систему. За пределами убежища это стало уроком: иметь специалистов мало, нужно ещё организовать совместную работу.`
-      : seededStoryPick(g, 'epilogue-synergy-thin', [
-        'У группы не сложилась одна очевидная комбинация навыков, которая закрывала бы всё сразу. Выжившие научились ценить не только яркие способности, но и готовность учиться, делиться инструментами и выполнять скучную ежедневную работу.',
-        'Внутри бункера способности участников не всегда встретились с правильной задачей. После выхода это изменилось: даже навык, который не помог починить конкретную систему, мог пригодиться в строительстве, торговле, обучении или обычной организации быта.',
-        'Команда не стала идеальным механизмом, и часть её возможностей так и не раскрылась в убежище. Но за его дверями возникали совершенно другие задачи — и прежние слабые места неожиданно могли превратиться в специализацию.'
-      ]);
+  if (outcome.survived) {
+    paragraphs.push(`Итог: наша община выбралась из бункера после катастрофы «${catastropheTitle}». Выжившие: ${roster.length ? list(roster, 8) : 'состав не зафиксирован'}. Оценка устойчивости — ${score} ${scoreUnit}.`);
+  } else {
+    const causes = (details.reasons || []).map(cleanLabel).filter(Boolean);
+    const remainingProblems = unresolved.map(problem => cleanLabel(problem.title || problem.id)).filter(Boolean);
+    const causeText = remainingProblems.length
+      ? `Нерешённые неисправности: ${list(remainingProblems)}.`
+      : causes.length ? `Зафиксированные причины: ${list(causes, 2)}.` : 'Запаса прочности оказалось недостаточно.';
+    paragraphs.push(`Итог: наша община не выбралась из бункера после катастрофы «${catastropheTitle}». Оценка устойчивости — ${score} ${scoreUnit}. ${causeText}`);
+  }
 
-  let bunkerParagraph;
-  if (resolved.length && unresolvedNames.length === 0) bunkerParagraph = seededStoryPick(g, 'epilogue-bunker-perfect', [
-    `Все выявленные критические неисправности удалось закрыть. В памяти группы остались конкретные люди и решения: ${resolved.slice(0, 3).map(x => `${x.title} — ${x.specialist}`).join('; ')}. Эти эпизоды стали первым примером того, как проверять проблему, назначать ответственного и не считать работу законченной до проверки результата.`,
-    `Бункер выдержал не потому, что был безупречен: его слабые места нашли вовремя. ${resolved.slice(0, 3).map(x => `${x.specialist} помог разобраться с задачей «${x.title}»`).join('; ')}. После выхода группа продолжила действовать по тому же принципу — не скрывать неисправности и не ждать, пока небольшая поломка станет катастрофой.`
-  ]);
-  else if (resolved.length) bunkerParagraph = `Внутри убежища удалось решить часть задач: ${resolved.slice(0, 3).map(x => `${x.title} (${x.specialist})`).join('; ')}. Остались и нерешённые проблемы${unresolvedNames.length ? ` — ${unresolvedNames.slice(0, 3).join(', ')}` : ''}. Уже снаружи группа использовала этот опыт как список ошибок, которые нельзя повторять при устройстве нового лагеря.`;
-  else bunkerParagraph = seededStoryPick(g, 'epilogue-bunker-no-resolve', [
-    'Ни одна авария не получила простого финального решения. Это не означало, что в группе не было талантов: скорее, нужные навыки не совпали с проблемами или на решение не хватило времени, ресурсов и координации. Позже выжившие стали распределять обязанности заранее и проверять, кто отвечает за каждую систему.',
-    'Бункер оставил после себя перечень уроков: следить за мелкими поломками, записывать расход запасов и не рассчитывать, что один человек успеет всё. В новом поселении группа сперва делала именно это — училась предотвращать кризисы вместо того, чтобы героически тушить их последствия.',
-    'Даже неудачные попытки что-то исправить принесли пользу. Люди запомнили, какие решения не сработали, каких материалов не хватало и почему просьбы о помощи звучали слишком поздно. В новом лагере они начали с простого: осмотр, список задач, ответственные и запасной план.'
-  ]);
+  const resourceParts = [
+    `пища — ${Math.round(Number(resources.food || 0))}`,
+    `вода — ${Math.round(Number(resources.water || 0))}`,
+    `энергия — ${Math.round(Number(resources.energy || 0))}`,
+    `материалы — ${Math.round(Number(resources.materials || 0))}`
+  ];
+  if (resources.medicine !== undefined || resources.medical !== undefined) {
+    resourceParts.push(`медицина — ${Math.round(Number(resources.medicine ?? resources.medical ?? 0))}`);
+  }
+  paragraphs.push(`Убежище: ${cleanLabel(g.bunker?.title || 'не установлено')}; вместимость — ${capacity}. Запасы на момент завершения: ${resourceParts.join(', ')}. Системы: ${systems.length ? list(systems, 8) : 'не зафиксированы'}.`);
 
-  const discoveredParagraph = facts.length
-    ? seededStoryPick(g, 'epilogue-discoveries', [
-      `Раскрытые сведения о катастрофе — ${facts.slice(0, 2).map(f => f.title || f.text).join('; ')} — помогли понять, какие риски останутся и после выхода. Эти наблюдения передавали другим поселениям, чтобы следующие группы не повторяли путь вслепую.`,
-      `Найденные факты о внешнем мире (${facts.slice(0, 2).map(f => f.title || f.text).join('; ')}) стали чем-то вроде первой карты новой реальности. Даже неполные сведения ценились: они помогали выбирать маршруты, оценивать опасные зоны и объяснять, что нельзя считать безопасным только потому, что сегодня ничего не произошло.`
-    ])
-    : 'О мире снаружи было известно меньше, чем хотелось бы. Поэтому первые вылазки строились на наблюдении и осторожности: каждое возвращение приносило новую запись, а каждая запись делала следующий выход чуть менее слепым.';
+  const resolvedFacts = resolved.map(item => `${cleanLabel(item.title || item.id)} — ${cleanLabel(item.specialist || item.profession || 'ответственный не указан')}`);
+  outcomes.filter(item => item.resolved && !resolvedFacts.some(text => text.startsWith(cleanLabel(item.title || item.id)))).forEach(item => {
+    resolvedFacts.push(`${cleanLabel(item.title || item.id)} — ${cleanLabel(item.specialist || 'ответственный не указан')}`);
+  });
+  const stillOpen = unresolved.map(item => cleanLabel(item.title || item.id)).filter(Boolean);
+  const workLog = [];
+  if (resolvedFacts.length) workLog.push(`устранено: ${list(resolvedFacts)}`);
+  if (stillOpen.length) workLog.push(`осталось: ${list(stillOpen)}`);
+  if (!workLog.length) workLog.push('активных неисправностей не зафиксировано');
+  if (groups.length) workLog.push(`связки навыков: ${list(groups, 3)}`);
+  paragraphs.push(`Учёт работ: ${workLog.join('. ')}.`);
 
-  const twistParagraph = outcome.twists?.length ? outcome.twists[0] : '';
-  const survivorsForOutside = survivors.length ? survivors : (g.players || []).filter(p => p.occupied !== false).slice(0, 3);
-  const outsideStories = outcome.survived
-    ? survivorsForOutside.slice(0, 3).map(player => postCatastropheRoleStory(g, player, specialists.has(player.name))).join('')
-    : '';
-  const missedPotential = !outcome.survived && survivorsForOutside.length
-    ? `<p>Некоторые способности могли пригодиться уже за дверями, если бы группа сумела выбраться: ${survivorsForOutside.slice(0, 3).map(player => `${esc(player.name)} — ${esc(String(player.cards?.profession?.value || 'неизвестная профессия'))}`).join('; ')}. У этих людей могли найтись полезные занятия в новом мире, но до этого этапа история группы не дошла.</p>`
-    : '';
-  const closing = outcome.survived
-    ? seededStoryPick(g, 'epilogue-win-close', [
-      'Через несколько лет группа перестала называть себя просто выжившими. Они построили место, где были правила, работа и возможность растить детей, спорить, чинить ошибки и начинать проекты. Старый мир не вернулся — но новый больше не казался пустым.',
-      'Постепенно к ним стали приходить другие люди. У группы появились мастерская, небольшой склад, огород и расписание дежурств. Это были скромные вещи, но именно из них складывалось будущее, которого поначалу никто не смел обещать.',
-      'Их поселение не стало легендой о безошибочных героях. Оно стало местом, где люди умели признавать промахи, учиться и помогать друг другу. После катастрофы такой порядок оказался редкостью — и потому имело смысл его защищать.'
-    ])
-    : seededStoryPick(g, 'epilogue-loss-close', [
-      'Эта история закончилась не потому, что у участников не было достоинств. Их навыки, привычки и опыт просто не сложились в достаточно надёжную систему до того, как запас времени иссяк. В других убежищах этот случай пересказывали как предупреждение: подготовка — это не список талантов, а работающий план.',
-      'Позднее другие группы нашли оставленные записи и восстановили часть событий. Они увидели не только ошибки, но и попытки помочь друг другу. Из этой истории сделали практические выводы: запасные решения, ясные обязанности и честный разговор об угрозах должны появляться до кризиса, а не после.',
-      'Внешний мир продолжился без них. Но записи о неисправностях, запасах и решениях могли стать уроком для тех, кто пришёл позже. Даже неудача оставляет шанс помочь следующим — если кто-то сумеет понять, что именно пошло не так.'
-    ]);
-
-  const paragraphs = [intro, synergyParagraph, bunkerParagraph, discoveredParagraph];
-  if (twistParagraph) paragraphs.push(twistParagraph);
-  if (outsideStories) paragraphs.push(outsideStories);
-  if (missedPotential) paragraphs.push(missedPotential);
-  paragraphs.push(closing);
-  return paragraphs.map(paragraph => paragraph.startsWith('<p>') ? paragraph : `<p>${esc(paragraph)}</p>`).join('');
+  if (discoveries.length) paragraphs.push(`Сведения о внешнем мире: ${list(discoveries.map(compactFact).filter(Boolean), 2)}.`);
+  return paragraphs.map(paragraph => `<p>${esc(paragraph)}</p>`).join('');
 }
 
 function renderFinal() {
@@ -2740,11 +2754,6 @@ function renderFinal() {
   const twistHtml = outcome.twists.length
     ? `<section class="panel final-detail-panel"><h2>Истории, которые запомнятся</h2><div class="final-detail-list">${outcome.twists.map(text=>`<article><p>${esc(text)}</p></article>`).join('')}</div></section>`
     : '';
-  const synergyText = r.details.covered >= 4 && r.details.strongCoverage >= 2
-    ? 'Команда закрыла несколько разных задач: навыки специалистов дополняли друг друга.'
-    : r.details.synergyReasons?.length
-      ? `Особенно пригодились связки: ${r.details.synergyReasons.slice(0,3).map(esc).join('; ')}.`
-      : 'У группы были сильные стороны, но не все навыки удалось соединить в единую систему.';
   const riskText = outcome.infection?.threats?.length
     ? `<article class="${outcome.infection.outbreak?'final-risk-danger':'final-risk-contained'}"><strong>${outcome.infection.outbreak?'Заражение вышло из-под контроля':'Опасное состояние обнаружено'}</strong><p>${esc(outcome.infection.summary)}</p></article>`
     : '';
@@ -2760,11 +2769,9 @@ function renderFinal() {
       <p class="final-support">${esc(outcome.support)}</p>
     </section>
     <section class="panel final-brief">
-      <div class="panel-kicker">Последняя глава</div>
+      <div class="panel-kicker">Запись в журнале</div>
       <h2>${esc(g.catastrophe.title)}</h2>
       <p class="muted">${esc(g.catastrophe.desc)}</p>
-      <p><strong>Убежище:</strong> ${esc(g.bunker.title)}. ${outcome.survived ? 'Оно стало домом для тех, кто сумел применить свои навыки и справиться с главными угрозами.' : 'Его стены не смогли компенсировать все опасности катастрофы и ошибки группы.'}</p>
-      <p>${esc(synergyText)}</p>
       ${finalEpilogue(g, outcome, survivors, r)}
     </section>
     <details class="panel final-details">
@@ -2846,7 +2853,7 @@ function renderGame() {
       <div class="players-board">${g.players.map(p => renderPlayerRow(p, me, false)).join('')}</div>
     </section>
 
-    ${state.isHost ? `<div class="sticky-action"><section class="panel"><div class="row space host-controls-main"><div><strong>Управление партией</strong><div class="small">Таймеры, принудительное завершение хода и инструменты тестирования.</div>${current ? `<div class="small">Сейчас ходит: <strong>${esc(current.name)}${current.bot ? ' · бот' : ''}</strong></div>` : ''}</div><div class="host-controls-actions">${hostControls(g, current)}</div></div></section></div>` : ''}
+    ${state.isHost ? `<details class="sticky-action host-tools-drawer" ${state.hostToolsOpen ? 'open' : ''} ontoggle="uiHostToolsToggle(this.open)"><summary>Инструменты хоста${current ? ` · ${esc(current.name)} ходит` : ''}</summary><section class="panel"><div class="host-controls-main"><div><strong>Управление партией</strong><div class="small">Таймеры и тестовые действия.</div></div><div class="host-controls-actions">${hostControls(g, current)}</div></div></section></details>` : ''}
   `;
 }
 
@@ -3007,6 +3014,23 @@ function render() {
   renderGame();
 }
 
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (state.isHost && state.peer?.disconnected && !state.peer.destroyed) {
+    try { state.peer.reconnect(); } catch (error) { console.warn('Host resume reconnect failed', error); }
+  } else if (!state.isHost && state.mode === 'game' && state.pendingHost?.open && state.myPlayerId) {
+    sendToHost({ action: 'requestState' });
+  }
+});
+window.addEventListener?.('online', () => {
+  if (state.isHost && state.peer?.disconnected && !state.peer.destroyed) {
+    try { state.peer.reconnect(); } catch (error) { console.warn('Host online reconnect failed', error); }
+  } else if (!state.isHost && state.mode === 'game' && state.pendingHost?.open && state.myPlayerId) {
+    sendToHost({ action: 'requestState' });
+  }
+});
+
+window.uiHostToolsToggle = open => { state.hostToolsOpen = !!open; };
 window.uiAddBot = () => addTestBot();
 window.uiFillBots = () => fillTestBots();
 window.uiClearBots = () => removeTestBots();
