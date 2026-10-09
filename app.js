@@ -37,13 +37,23 @@ const DECK = {
     ['Выносливое телосложение', { body: 2 }], ['Крепкое телосложение', { body: 2 }],
     ['Лёгкое и подвижное телосложение', { body: 1 }], ['Среднее телосложение', { body: 1 }],
     ['Сильные руки, хорошая координация', { body: 2 }], ['Высокая выносливость', { body: 2 }],
-    ['Низкая физическая выносливость', { body: -1 }], ['Есть ограничения по нагрузкам', { body: -1 }]
+    ['Низкая физическая выносливость', { body: -1 }], ['Есть ограничения по нагрузкам', { body: -1 }],
+    ['Отсутствует одна рука; давно приспособился к бытовым задачам', { body: -1, skill: 1 }],
+    ['Передвигается на инвалидной коляске; важны доступные маршруты', { body: -1, env: 1, skill: 1 }],
+    ['Старое повреждение колена: бегать трудно, работать руками может', { body: -1, tech: 0.5 }],
+    ['Необычайно крепкие нервы, но совершенно не спортивный', { body: 0, team: 1 }],
+    ['Выглядит хилым, но способен часами работать без перерыва', { body: 2 }]
   ],
   trait: [
     ['Спокойный и собранный', { team: 2 }], ['Наблюдательный', { team: 1, skill: 1 }],
     ['Умеет принимать решения под давлением', { team: 2 }], ['Очень настойчивый', { team: 1 }],
     ['Хорошо ладит с людьми', { team: 2 }], ['Практичный и экономный', { food: 1, team: 1 }],
-    ['Склонен спорить и упрямиться', { team: -1 }], ['Сильно нервничает в конфликте', { team: -1 }]
+    ['Склонен спорить и упрямиться', { team: -1 }], ['Сильно нервничает в конфликте', { team: -1 }],
+    ['Аутизм: человеку комфортнее ясные инструкции и предсказуемый распорядок', { skill: 0.5 }],
+    ['Говорит прямо и буквально — переговоры иногда звучат неожиданно', { team: -0.5, skill: 0.5 }],
+    ['Обладает странным чувством юмора и разряжает самые мрачные споры', { team: 1 }],
+    ['Не умеет вовремя остановиться и превращает любой спор в дебаты', { team: -1 }],
+    ['С виду паникёр, но в настоящем кризисе действует удивительно спокойно', { team: 1, risk: 1 }]
   ],
   profession: [
     ['Врач-терапевт', { med: 4, food: 0, tech: 0 }], ['Инженер', { tech: 4 }],
@@ -62,13 +72,26 @@ const DECK = {
     ['Здоров, серьёзных ограничений нет', { health: 2 }], ['Лёгкая сезонная аллергия', { health: 1 }],
     ['Здоровье стабильное, требуется режим сна', { health: 1 }], ['Недавняя травма, но восстановление идёт', { health: 0 }],
     ['Чувствительность к холоду', { health: -1 }], ['Нужны регулярные лекарства', { health: -1 }],
-    ['Сильная простуда перед катастрофой', { health: -1 }], ['Очень хорошая физическая форма', { health: 2, body: 1 }]
+    ['Сильная простуда перед катастрофой', { health: -1 }], ['Очень хорошая физическая форма', { health: 2, body: 1 }],
+    ['Коронавирус: скрывает симптомы, заражение очень вероятно', { health: -2, med: -1, team: -1 }],
+    ['Чума на ранней стадии: старается не привлекать внимания к симптомам', { health: -3, med: -2, team: -1 }],
+    ['Зомби-вирус после укуса: уверяет, что это обычная царапина', { health: -3, med: -2, risk: -2 }],
+    ['Неизвестная грибковая инфекция: опасна при тесном контакте', { health: -2, med: -1 }],
+    ['Бессимптомный носитель неизвестного вируса', { health: -1, med: -2, team: -1 }],
+    ['Паразитарная инфекция неизвестного происхождения', { health: -2, med: -1 }],
+    ['Деменция: память иногда подводит в стрессовой ситуации', { health: -1, skill: -1 }],
+    ['Панические атаки при тесном контакте, но состояние контролируется', { health: 0, team: -0.5 }],
+    ['Старая травма: боль возвращается при сильной нагрузке', { health: -1, body: -0.5 }]
   ],
   hobby: [
     ['Садоводство', { food: 2 }], ['Ремонт техники', { tech: 2 }], ['Радиосвязь', { comms: 2 }],
     ['Кулинария', { food: 1, team: 1 }], ['Плотницкое дело', { craft: 2, tech: 1 }],
     ['Первая помощь', { med: 2 }], ['Пошив и ремонт одежды', { craft: 2 }], ['Ориентирование', { env: 2, body: 1 }],
-    ['Фитнес и бег', { body: 2 }], ['Шахматы и логические задачи', { skill: 2 }]
+    ['Фитнес и бег', { body: 2 }], ['Шахматы и логические задачи', { skill: 2 }],
+    ['Бокс: реакция, дисциплина и привычка держать удар', { body: 2, risk: 1 }],
+    ['Радиолюбительские эксперименты, которые иногда заканчиваются дымом', { tech: 1, risk: -1 }],
+    ['Наблюдение за птицами и следами животных', { env: 2 }],
+    ['Постоянно разбирает бытовую технику «просто посмотреть»', { tech: 1, craft: 1 }]
   ],
   fear: [
     ['Боится темноты', { risk: -1 }], ['Боится высоты', { risk: -1 }], ['Боится открытой воды', { risk: -1 }],
@@ -94,7 +117,14 @@ const DECK = {
     ['Несколько лет жил за городом и привык к автономности', { env: 2, body: 1 }], ['Свободно говорит на трёх языках', { team: 1 }],
     ['Умеет распределять запасы и вести учёт', { food: 1, skill: 1 }], ['Знаком с базовыми правилами санитарии', { med: 1 }],
     ['Имеет опыт работы в команде спасателей', { team: 2, body: 1 }], ['Хорошо ориентируется по картам', { env: 2 }],
-    ['Быстро обучается новым задачам', { skill: 2 }], ['Раньше отвечал за обслуживание большого здания', { tech: 2 }]
+    ['Быстро обучается новым задачам', { skill: 2 }], ['Раньше отвечал за обслуживание большого здания', { tech: 2 }],
+    ['30-летний стаж в своей области; коллеги считали его лучшим специалистом', { tech: 4, skill: 2 }],
+    ['Мастер выживания: добывал воду, находил укрытие и добывал пищу вдали от цивилизации', { env: 3, food: 2, water: 2 }],
+    ['Когда-то случайно запустил эвакуацию целого торгового центра', { tech: 1, risk: -1 }],
+    ['Однажды спас целую смену благодаря вниманию к мелочам', { skill: 2, team: 1 }],
+    ['Скрывает, что его уволили за катастрофическую ошибку', { skill: -1, team: -1 }],
+    ['Может объяснить сложную вещь простыми словами', { skill: 2, team: 1 }],
+    ['Выжил неделю в лесу, но забыл выключить воду у себя дома', { env: 2, tech: -0.5 }]
   ],
   extra: [
     ['Умеет экономно расходовать воду', { water: 2 }], ['Уверенно чинит простые механизмы', { tech: 2 }],
@@ -312,7 +342,14 @@ function inBunkerPlayers() { return (state.game?.players || []).filter(p => p.bu
 function remainingCardTypes(player) { return CARD_TYPES.map(x => x[0]).filter(type => !player.revealed.includes(type)); }
 
 function createDeckCard(type) {
-  const [value, mods] = pick(DECK[type]);
+  let pool = DECK[type];
+  if (type === 'health') {
+    // Infectious conditions should be a memorable twist, not the default outcome of every party.
+    const infectious = pool.filter(([value]) => /коронавирус|чума|зомби-вирус|грибковая инфекция|бессимптомный носитель неизвестного вируса|паразитарная инфекция/i.test(value));
+    const ordinary = pool.filter(([value]) => !/коронавирус|чума|зомби-вирус|грибковая инфекция|бессимптомный носитель неизвестного вируса|паразитарная инфекция/i.test(value));
+    pool = Math.random() < 0.20 && infectious.length ? infectious : ordinary;
+  }
+  const [value, mods] = pick(pool);
   const card = { type, value, mods: { ...mods } };
   if (type === 'biology') {
     const match = String(value).match(/(Мужчина|Женщина),\s*(\d+)/i);
@@ -639,6 +676,29 @@ function autoVoteForBots() {
   syncAndRender();
   const allVoted = eligible.every(p => Object.prototype.hasOwnProperty.call(g.votes, p.id));
   if (allVoted) finishVote();
+}
+
+function hostBotSkipChoice(botId, enabled) {
+  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return false;
+  const g = state.game;
+  if (g.round !== 1 || g.voteRound !== 1 || g.skipUsed) return false;
+  const bot = playerById(botId);
+  if (!bot?.bot || bot.eliminated) return false;
+  g.skipChoices[botId] = !!enabled;
+  g.log.push(`Хост выбрал для тестового бота ${bot.name}: ${enabled ? 'за пропуск' : 'не за пропуск'}.`);
+  syncAndRender();
+  return true;
+}
+
+function autoSkipChoiceForBots() {
+  if (!state.isHost || !state.game || state.game.currentPhase !== 'vote') return;
+  const g = state.game;
+  if (g.round !== 1 || g.voteRound !== 1 || g.skipUsed) return toast('Пропуск доступен только в первом голосовании первого раунда.');
+  const bots = activePlayers().filter(p => p.bot);
+  if (!bots.length) return toast('Нет активных ботов для выбора пропуска.');
+  bots.forEach(bot => { g.skipChoices[bot.id] = Math.random() < 0.5; });
+  syncAndRender();
+  toast('Боты сделали случайный выбор по пропуску.');
 }
 function createGame(settings, names, hostPlayerIdx = null) {
   const cat = pick(CATASTROPHES);
@@ -1117,7 +1177,13 @@ function playerDomainProfile(player) {
     if (!card) return;
     const scale = valueOfCard(type);
     Object.entries(card.mods || {}).forEach(([k, v]) => {
-      raw[k] = (raw[k] || 0) + Number(v || 0) * scale;
+      let effective = Number(v || 0);
+      const memoryImpaired = /деменц|память иногда подводит/i.test(String(player.cards?.health?.value || ''));
+      const grandExpertClaim = type === 'fact' && /30-летним стажем|лучшим в профессии/i.test(String(card.value || ''));
+      // Keep the joke situational: this particular professional boast becomes unreliable,
+      // not the person's entire usefulness or all of their skills.
+      if (memoryImpaired && grandExpertClaim && effective > 0) effective *= 0.18;
+      raw[k] = (raw[k] || 0) + effective * scale;
     });
   });
 
@@ -1186,6 +1252,92 @@ function bunkerNeedMap(bunker) {
   return needs;
 }
 
+const INFECTIOUS_CONDITIONS = [
+  { id:'zombie-virus', match:/зомби-вирус/i, title:'Зомби-вирус', penalty:28, threshold:5.3, description:'Укус, который назвали царапиной, поставил под угрозу весь бункер.' },
+  { id:'plague', match:/чума/i, title:'Чума', penalty:19, threshold:4.2, description:'Скрытая чума прорвалась через карантин и поставила под угрозу всех выживших.' },
+  { id:'unknown-fungus', match:/грибковая инфекция/i, title:'Заразная грибковая инфекция', penalty:14, threshold:3.2, description:'Инфекция распространилась по плохо проветриваемым помещениям.' },
+  { id:'unknown-virus', match:/бессимптомный носитель|неизвестного вируса/i, title:'Неизвестный вирус', penalty:14, threshold:3.1, description:'Бессимптомный носитель превратил бункер в очаг заражения.' },
+  { id:'coronavirus', match:/коронавирус/i, title:'Коронавирус', penalty:10, threshold:2.5, description:'Скрытые симптомы запустили вспышку внутри бункера.' },
+  { id:'parasite', match:/паразитарная инфекция/i, title:'Паразитарная инфекция', penalty:8, threshold:2.4, description:'Неизвестная инфекция осложнила жизнь всей группы.' }
+];
+
+function analyzeInfectionRisk(survivors, playerProfiles, bunkerState) {
+  const threats = [];
+  survivors.forEach(player => {
+    const health = String(player.cards?.health?.value || '');
+    const rule = INFECTIOUS_CONDITIONS.find(item => item.match.test(health));
+    if (rule) threats.push({ player: player.name, profession: String(player.cards?.profession?.value || ''), ...rule });
+  });
+  if (!threats.length) return { threats:[], penalty:0, outbreak:false, containment:0, summary:'' };
+  const medical = playerProfiles.reduce((n, item) => n + Math.max(0, Number(item.profile.med || 0)), 0);
+  const hasMedicalSpecialist = survivors.some(p => /врач|фармацевт|биолог|медсестр|эпидемиолог/i.test(String(p.cards?.profession?.value || '')));
+  const infra = bunkerState?.infrastructure || {};
+  const containment = medical * 0.72 + (hasMedicalSpecialist ? 1.1 : 0) + Math.max(0, Number(infra.ventilation || 0)) / 42 + Math.max(0, Number(infra.sanitation || 0)) / 55;
+  const outbreaks = threats.filter(t => containment < t.threshold);
+  const penalty = Math.min(42, threats.reduce((n, t) => n + t.penalty * (containment >= t.threshold ? 0.30 : 0.82), 0));
+  const outbreak = outbreaks.length > 0;
+  const names = [...new Set(threats.map(t => t.title))];
+  return {
+    threats, penalty, outbreak, containment,
+    summary: outbreak
+      ? `${outbreaks.map(t => t.title).join(', ')} не удалось сдержать. ${outbreaks[0].description}`
+      : `В бункер попал человек с опасным состоянием (${names.join(', ')}), но медицинские навыки и инфраструктура помогли не допустить массового заражения.`
+  };
+}
+
+function playerTwistStories(survivors) {
+  const stories = [];
+  survivors.forEach(p => {
+    const profession = String(p.cards?.profession?.value || '');
+    const physique = String(p.cards?.physique?.value || '');
+    const health = String(p.cards?.health?.value || '');
+    const hobby = String(p.cards?.hobby?.value || '');
+    const fact = String(p.cards?.fact?.value || '');
+    const trait = String(p.cards?.trait?.value || '');
+    if (/деменц|память иногда подводит/i.test(health) && /стаж|лучшим специалистом/i.test(fact)) {
+      stories.push(`${p.name}: большой опыт в своей области встретился с памятью, которая подводит именно в стрессовой ситуации. Команда могла использовать его знания, но не полагаться на них вслепую.`);
+    }
+    if (/инвалидной коляске/i.test(physique) && /мастер выживания/i.test(fact)) {
+      stories.push(`${p.name}: мастер выживания на колёсах. Вместо того чтобы списывать его со счетов, группе пришлось продумать доступные маршруты — зато опыт автономной жизни оказался очень кстати.`);
+    }
+    if (/отсутствует одна рука/i.test(physique) && /бокс/i.test(hobby)) {
+      stories.push(`${p.name}: однорукий боксёр. Для драки это спорное преимущество, зато дисциплина, реакция и смелость никуда не делись.`);
+    }
+    if (/аутизм/i.test(trait)) {
+      stories.push(`${p.name}: при ясных инструкциях и понятном распорядке его особенности не мешали работе команды; это напомнило остальным, что людям нужна разная организация работы, а не одинаковые ярлыки.`);
+    }
+    if (/всё|целого торгового центра/i.test(fact) && /электрик|инженер/i.test(profession)) {
+      stories.push(`${p.name}: технический опыт полезен, но его история с эвакуацией торгового центра заставила команду перепроверять решения.`);
+    }
+  });
+  return [...new Set(stories)].slice(0, 3);
+}
+
+function finalOutcome(g, report) {
+  const infection = report.details.infectionRisk || { outbreak:false, summary:'' };
+  const unresolved = (g.bunkerState?.activeProblems || []).length;
+  const score = Number(report.score || 0);
+  const survived = !infection.outbreak && score >= 54 && !(unresolved >= 3 && score < 62);
+  let lead;
+  if (infection.outbreak) lead = 'Один человек скрыл опасную инфекцию — и угроза оказалась сильнее стен бункера. Медицинских ресурсов и изоляции не хватило, чтобы защитить остальных.';
+  else if (!survived && score < 44) lead = 'Бункер не выдержал долгого испытания: нехватка ресурсов, слабая инфраструктура и пробелы в навыках сложились в цепочку проблем.';
+  else if (!survived) lead = 'Группа добралась до убежища, но запасов, рабочих систем и согласованности не хватило. Бункер стал отсрочкой, а не спасением.';
+  else if (score >= 76 && report.details.covered >= 4) lead = 'Вы выжили благодаря сочетанию специалистов: важные задачи закрывали разные люди, а сильные стороны команды дополняли друг друга.';
+  else if ((g.bunkerState?.resolvedProblems || []).length && unresolved === 0) lead = 'Вы выжили не благодаря одному герою, а потому что сумели разобрать проблемы бункера по ходу партии и применить нужные навыки в нужный момент.';
+  else lead = 'Вы выжили, используя доступные навыки, открытые сведения о катастрофе и возможности бункера. Команда не была идеальной, но её оказалось достаточно.';
+
+  const resolved = (g.bunkerState?.resolvedProblems || []).length;
+  const parts = [];
+  if (infection.threats?.length && !infection.outbreak) parts.push('Опасное заболевание удалось сдержать благодаря сочетанию медицинских навыков и условий бункера.');
+  if (resolved > 0) parts.push('Специалисты устранили часть критических проблем бункера.');
+  if (unresolved > 0) parts.push('Некоторые неисправности остались нерешёнными и продолжали угрожать группе.');
+  if (report.details.synergyReasons?.length >= 2) parts.push('Разные характеристики и профессии сработали в связке, а не по отдельности.');
+  const twists = playerTwistStories(inBunkerPlayers());
+  if (twists.length) parts.push(twists[0]);
+  if (!parts.length) parts.push('Катастрофа раскрылась постепенно, и найденные факты помогли понять, с чем придётся жить дальше.');
+  return { survived, title: survived ? 'ВЫ ВЫЖИЛИ' : 'ВЫ ПОГИБЛИ', lead, support: parts.slice(0, 2).join(' '), twists, infection };
+}
+
 function calculateFinalReport() {
   const g = state.game;
   const survivors = inBunkerPlayers();
@@ -1199,6 +1351,7 @@ function calculateFinalReport() {
   const bunkerState = g.bunkerState || createBunkerState(g.bunker, g.capacity);
   const resources = bunkerState.resources || {};
   const unresolvedProblems = bunkerState.activeProblems || [];
+  const infectionRisk = analyzeInfectionRisk(survivors, playerProfiles, bunkerState);
   const unresolvedPenalty = Math.min(18, unresolvedProblems.reduce((total, problem) => total + (problem.severity || 1) * 3, 0));
   const currentFood = Math.max(0, Number(resources.food ?? g.bunker.food));
   const currentWater = Math.max(0, Number(resources.water ?? g.bunker.water));
@@ -1323,7 +1476,8 @@ function calculateFinalReport() {
   );
 
   const weighted = resource*.18 + systems*.16 + medicine*.14 + teamwork*.13 + food*.12 + environment*.09 + physical*.05 + demographic*.08 + synergy*.05;
-  const score = Math.round(clamp(weighted, 0, 100));
+  let score = Math.round(clamp(weighted - infectionRisk.penalty, 0, 100));
+  if (infectionRisk.outbreak) score = Math.min(score, 49);
 
   let verdict = 'Низкая устойчивость';
   if (score >= 78) verdict = 'Высокая устойчивость';
@@ -1354,6 +1508,7 @@ function calculateFinalReport() {
       activeProblems: unresolvedProblems.map(problem => problem.title),
       resolvedProblems: (bunkerState.resolvedProblems || []).map(problem => problem.title),
       bunkerProblemOutcomes: clonePlain(bunkerState.finalProblemOutcomes || []),
+      infectionRisk: clonePlain(infectionRisk),
       discoveries: (bunkerState.discoveries || []).map(item => item.title),
       catastropheFacts: (g.catastropheReveals || []).map(item => ({ id: item.id, title: item.title || '', history: item.history || '', text: item.text, round: item.round, effectApplied: !!item.effectApplied })),
       catastropheModifiers: clonePlain(worldMods),
@@ -1941,7 +2096,15 @@ function kickPlayer(playerId) {
         return;
       }
     } else if (previousPhase === 'speeches' && removedIndex >= 0) {
-      if (removedIndex < oldSpeechIndex) g.currentSpeechIndex = Math.max(0, oldSpeechIndex - 1);
+      if (removedIndex < oldSpeechIndex) {
+        g.currentSpeechIndex = Math.max(0, oldSpeechIndex - 1);
+      } else if (removedIndex === oldSpeechIndex) {
+        // Do not leave the removed speaker's old countdown running for the next player.
+        g.currentSpeechIndex = Math.max(-1, oldSpeechIndex - 1);
+        if (orderedActive().length === 0) { beginVote(); return; }
+        nextSpeech();
+        return;
+      }
       if (g.currentSpeechIndex >= orderedActive().length) {
         beginVote();
         return;
@@ -2075,22 +2238,132 @@ function renderLobby() {
   `;
 }
 
-function renderBunkerPanel(g) {
+function describeMonthCount(value) {
+  const amount = Math.max(0, Math.round(Number(value || 0) * 10) / 10);
+  const whole = Math.floor(amount);
+  const lastTwo = whole % 100;
+  const last = whole % 10;
+  const unit = lastTwo >= 11 && lastTwo <= 14 ? 'месяцев' : last === 1 ? 'месяц' : last >= 2 && last <= 4 ? 'месяца' : 'месяцев';
+  return `${amount} ${unit}`;
+}
+
+function describeInfrastructureLevel(value, system) {
+  const amount = Math.max(0, Math.min(100, Number(value || 0)));
+  if (system === 'waterRecovery') {
+    if (amount >= 70) return 'система восстановления воды работает уверенно';
+    if (amount >= 35) return 'восстановление воды возможно, но его мощности пока ограничены';
+    return 'восстановление воды пока практически не налажено';
+  }
+  if (system === 'foodProduction') {
+    if (amount >= 70) return 'собственное производство пищи уже может заметно поддерживать запасы';
+    if (amount >= 35) return 'собственное производство пищи работает лишь частично';
+    return 'собственное производство пищи ещё не налажено';
+  }
+  if (amount >= 85) {
+    return ({ ventilation:'вентиляция работает устойчиво', power:'электросистема работает устойчиво', structure:'конструкции в хорошем состоянии', sanitation:'санитарная система работает устойчиво' })[system] || 'система работает устойчиво';
+  }
+  if (amount >= 65) {
+    return ({ ventilation:'вентиляция работает, но требует регулярного контроля', power:'электросистема работает, но требует регулярного контроля', structure:'конструкции в целом надёжны, но нуждаются в осмотре', sanitation:'санитария поддерживается, но требует дисциплины' })[system] || 'система работает, но требует контроля';
+  }
+  if (amount >= 40) {
+    return ({ ventilation:'вентиляция ослаблена и нуждается в обслуживании', power:'электросистема работает нестабильно', structure:'конструкции заметно изношены', sanitation:'санитарная система работает с перебоями' })[system] || 'система ослаблена';
+  }
+  return ({ ventilation:'вентиляция в критическом состоянии', power:'электросистема находится в критическом состоянии', structure:'конструкции требуют срочной защиты', sanitation:'санитарная система создаёт серьёзный риск' })[system] || 'система в критическом состоянии';
+}
+
+function describeBunkerSituation(g) {
   const bs = g.bunkerState || createBunkerState(g.bunker, g.settings?.playerCount || 0);
   const resources = bs.resources || {};
   const infrastructure = bs.infrastructure || {};
+  const food = Math.max(0, Number(resources.food ?? g.bunker.food ?? 0));
+  const water = Math.max(0, Number(resources.water ?? g.bunker.water ?? 0));
+  const energy = Math.max(0, Number(resources.energy ?? g.bunker.energy ?? 0));
+  const materials = Math.max(0, Number(resources.materials || 0));
+  const medicine = Math.max(0, Number(resources.medicine || 0));
+
+  const foodText = food <= 4
+    ? `продовольственный запас крайне мал — примерно ${describeMonthCount(food)} при обычном расходе`
+    : food <= 10
+      ? `еды немного: её хватит ориентировочно на ${describeMonthCount(food)}, поэтому экономия обязательна`
+      : food <= 18
+        ? `еды примерно на ${describeMonthCount(food)}; для долгой автономии потребуется наладить пополнение`
+        : `продовольственный запас выглядит сравнительно устойчивым — около ${describeMonthCount(food)}`;
+  const waterText = water <= 4
+    ? `запас воды критически мал — около ${describeMonthCount(water)}`
+    : water <= 10
+      ? `воды немного: около ${describeMonthCount(water)}, поэтому очистка и повторное использование влаги особенно важны`
+      : water <= 24
+        ? `воды примерно на ${describeMonthCount(water)} при обычном расходе`
+        : `водный запас сравнительно велик — около ${describeMonthCount(water)}`;
+  const energyText = energy <= 20
+    ? 'Энергорезерв почти исчерпан, поэтому придётся отключать второстепенные системы'
+    : energy <= 45
+      ? 'Энергорезерв низкий: электричество нужно расходовать строго по приоритетам'
+      : energy <= 70
+        ? 'Энергорезерв умеренный, поэтому важно следить за нагрузкой'
+        : 'Энергорезерв высокий, но энергозависимое оборудование всё равно требует бережного режима';
+  const materialText = materials <= 0 ? 'материалов для ремонта пока нет' : materials < 3 ? 'материалов для ремонта осталось немного' : 'есть рабочий запас материалов для ремонта';
+  const medicineText = medicine <= 0 ? 'медицинский запас пока отсутствует' : medicine < 3 ? 'медицинских средств мало, помощь придётся распределять осторожно' : 'медицинские средства имеются в запасе';
+
+  const systemTexts = [
+    describeInfrastructureLevel(infrastructure.ventilation, 'ventilation'),
+    describeInfrastructureLevel(infrastructure.power, 'power'),
+    describeInfrastructureLevel(infrastructure.structure, 'structure'),
+    describeInfrastructureLevel(infrastructure.sanitation, 'sanitation'),
+    describeInfrastructureLevel(infrastructure.waterRecovery, 'waterRecovery'),
+    describeInfrastructureLevel(infrastructure.foodProduction, 'foodProduction')
+  ];
+  const capacity = bs.capacity || { current:g.capacity, base:g.capacity };
+  return {
+    supplies: `Сейчас ${foodText}; ${waterText}. ${energyText}. Также ${materialText}, а ${medicineText}.`,
+    systems: `${systemTexts.join('; ').charAt(0).toLocaleUpperCase('ru-RU')}${systemTexts.join('; ').slice(1)}.`,
+    capacity: `Внутри можно разместить ${capacity.current ?? g.capacity} ${Number(capacity.current ?? g.capacity) % 100 >= 11 && Number(capacity.current ?? g.capacity) % 100 <= 14 ? 'человек' : Number(capacity.current ?? g.capacity) % 10 === 1 ? 'человека' : Number(capacity.current ?? g.capacity) % 10 >= 2 && Number(capacity.current ?? g.capacity) % 10 <= 4 ? 'человека' : 'человек'}; изначально убежище рассчитано на ${capacity.base ?? g.capacity} ${Number(capacity.base ?? g.capacity) % 100 >= 11 && Number(capacity.base ?? g.capacity) % 100 <= 14 ? 'человек' : Number(capacity.base ?? g.capacity) % 10 === 1 ? 'человека' : Number(capacity.base ?? g.capacity) % 10 >= 2 && Number(capacity.base ?? g.capacity) % 10 <= 4 ? 'человека' : 'человек'}.`
+  };
+}
+
+function describeCatastrophePressure(g) {
+  const catastrophe = g.catastrophe || {};
+  const tags = Array.isArray(catastrophe.scenarioTags) ? catastrophe.scenarioTags : [];
+  const tagDescriptions = {
+    cold:'Холод увеличивает потребность в тепле и ускоряет расход топлива и энергии.',
+    ash:'Пыль и загрязнение повышают нагрузку на фильтры и вентиляцию.',
+    climate:'Резкие погодные перепады делают контроль температуры и ремонт особенно важными.',
+    dry:'Дефицит влаги угрожает запасам воды и выращиванию пищи.',
+    water:'Главный риск — нехватка безопасной воды и перегрузка системы очистки.',
+    sanitation:'Санитария и предотвращение загрязнений напрямую влияют на выживание.',
+    health:'Медицинские ресурсы и изоляция становятся важнее обычного.',
+    filters:'Фильтрация воздуха и воды требует постоянного контроля.',
+    power:'Надёжность электросистемы определяет работу жизненно важного оборудования.',
+    systems:'Отказ техники может нарушить сразу несколько систем бункера.',
+    energy:'Энергию нужно распределять между критически важными системами.',
+    food:'Запасы пищи и возможность наладить её производство становятся ключевыми.',
+    structure:'Состояние конструкций и регулярный осмотр убежища особенно важны.',
+    dust:'Пыль ускоряет износ оборудования и загрязняет внешние поверхности.'
+  };
+  const scenarioLines = [...new Set(tags.map(tag => tagDescriptions[tag]).filter(Boolean))].slice(0, 2);
+  const needs = [];
+  const need = (value, normal, strong, mild, low) => {
+    const factor = Number(value || 1);
+    if (factor >= 1.3) needs.push(strong);
+    else if (factor >= 1.12) needs.push(normal);
+    else if (factor >= 1.04) needs.push(mild);
+    else if (factor <= 0.88) needs.push(low);
+  };
+  need(catastrophe.foodNeed, 'расход пищи будет повышен', 'расход пищи будет значительно выше обычного', 'расход пищи будет немного выше обычного', 'расход пищи будет ниже обычного');
+  need(catastrophe.heatNeed, 'нагрузка на обогрев будет повышена', 'нагрузка на обогрев будет значительно выше обычной', 'нагрузка на обогрев будет немного выше обычной', 'потребность в обогреве будет ниже обычной');
+  need(catastrophe.envNeed, 'нагрузка на вентиляцию и защиту среды будет повышена', 'нагрузка на вентиляцию и защиту среды будет значительно выше обычной', 'нагрузка на вентиляцию и защиту среды будет немного выше обычной', 'потребность в защите среды будет ниже обычной');
+  need(catastrophe.techNeed, 'потребность в техническом обслуживании будет выше обычной', 'потребность в техническом обслуживании будет значительно выше обычной', 'потребность в техническом обслуживании будет немного выше обычной', 'потребность в техническом обслуживании будет ниже обычной');
+  need(catastrophe.medicalNeed, 'потребность в медицине будет повышена', 'потребность в медицине будет значительно выше обычной', 'потребность в медицине будет немного выше обычной', 'потребность в медицине будет ниже обычной');
+  const details = [...scenarioLines];
+  if (needs.length) details.push(`Сценарные условия означают, что ${needs.slice(0, 3).join(', ')}.`);
+  if (!details.length) details.push('Главное условие выживания — поддерживать запасы, следить за исправностью оборудования и адаптироваться к меняющейся обстановке.');
+  return details.join(' ');
+}
+
+function renderBunkerPanel(g) {
+  const bs = g.bunkerState || createBunkerState(g.bunker, g.settings?.playerCount || 0);
   const problems = bs.activeProblems || [];
   const events = bs.events || [];
-  const resourceRows = [
-    ['Еда', resources.food, 'мес.'], ['Вода', resources.water, 'мес.'],
-    ['Энергия', resources.energy, '%'], ['Материалы', resources.materials, 'ед.'],
-    ['Медицина', resources.medicine, 'наб.']
-  ].filter(row => row[1] !== undefined);
-  const infraRows = [
-    ['Вентиляция', infrastructure.ventilation], ['Электросистема', infrastructure.power],
-    ['Конструкции', infrastructure.structure], ['Санитария', infrastructure.sanitation],
-    ['Восстановление воды', infrastructure.waterRecovery], ['Производство пищи', infrastructure.foodProduction]
-  ].filter(row => row[1] !== undefined);
   const eventCards = events.map(event => {
     const isProblem = problems.some(problem => problem.id === event.id);
     const status = event.resolved ? 'решено в финале' : isProblem ? 'проверка навыков в финале' : event.applied ? 'эффект учтён' : 'обнаружено';
@@ -2101,32 +2374,85 @@ function renderBunkerPanel(g) {
       ${isProblem && !event.resolved ? '<p class="small bunker-deferred-note">Кнопкой не решается: в финале проверим профессии оставшихся в бункере.</p>' : ''}
     </article>`;
   }).join('');
-  return `<section class="panel bunker-state-panel" aria-label="Состояние бункера">
-    <div class="panel-heading-row"><div><div class="panel-kicker">Меняющаяся среда</div><h2>Состояние бункера</h2></div><span class="bunker-capacity">${bs.capacity?.current ?? g.capacity} мест <span>· база ${bs.capacity?.base ?? g.capacity}</span></span></div>
-    <div class="bunker-resource-grid">${resourceRows.map(([label,value,unit]) => `<div class="bunker-resource"><span>${label}</span><strong>${esc(String(Math.round(Number(value || 0) * 10) / 10))}<small> ${unit}</small></strong></div>`).join('')}</div>
-    <div class="bunker-infrastructure">${infraRows.map(([label,value]) => `<div class="bunker-infra-row"><div><span>${label}</span><strong>${Math.round(Number(value || 0))}/100</strong></div><div class="bunker-meter"><span style="width:${Math.max(0,Math.min(100,Number(value || 0)))}%"></span></div></div>`).join('')}</div>
+  return `<section class="panel bunker-state-panel" aria-label="Обнаруженные события в бункере">
+    <div class="panel-heading-row"><div><div class="panel-kicker">Изменения внутри убежища</div><h2>Обнаруженные события</h2></div></div>
+    ${events.length ? `<p class="muted">По ходу партии обнаружено ${events.length} ${events.length % 10 === 1 && events.length % 100 !== 11 ? 'событие' : events.length % 10 >= 2 && events.length % 10 <= 4 && !(events.length % 100 >= 12 && events.length % 100 <= 14) ? 'события' : 'событий'}; их эффекты уже учитываются в состоянии убежища.</p>` : ''}
     ${problems.length ? `<div class="bunker-problems"><h3>Задачи для финальной экспертизы (${problems.length})</h3><p class="small">Специалисты среди оставшихся в бункере могут устранить проблемы автоматически. Если нужной профессии нет, проблема снизит итоговую устойчивость.</p></div>` : ''}
-    <div class="bunker-events-heading"><h3>Обнаруженные события</h3><span class="small">${events.length} найдено</span></div>
     ${eventCards ? `<div class="bunker-event-grid">${eventCards}</div>` : `<p class="muted">Новые особенности помещения будут открываться по ходу партии.</p>`}
   </section>`;
 }
-
 function renderFinalBunker(g, report) {
   const bs = g.bunkerState || createBunkerState(g.bunker, g.settings?.playerCount || 0);
   const resolved = bs.resolvedProblems || [];
+  const unresolved = bs.activeProblems || [];
   const discoveries = bs.discoveries || [];
-  return `<section class="panel final-bunker-panel"><div class="panel-kicker">Итоговая инфраструктура</div><h2>Чем закончила партия</h2>
-    <div class="bunker-final-stats">
-      <div><span>Вместимость</span><strong>${bs.capacity?.current ?? g.capacity} / ${bs.capacity?.base ?? g.capacity} базовых мест</strong></div>
-      <div><span>События обнаружены</span><strong>${discoveries.length}</strong></div>
-      <div><span>Проблемы устранены</span><strong>${resolved.length}</strong></div>
-      <div><span>Проблемы остались</span><strong>${(bs.activeProblems || []).length}</strong></div>
-    </div>
-    ${discoveries.length ? `<h3>История изменений</h3><div class="bunker-timeline">${discoveries.map(item=>`<div class="bunker-timeline-item"><span>Раунд ${item.round}</span><div><strong>${esc(item.title)}</strong><p>${esc(item.description)}</p></div></div>`).join('')}</div>` : '<p class="muted">В этой партии не было зафиксировано открытий инфраструктуры.</p>'}
-    ${resolved.length ? `<h3>Устранённые неисправности</h3><div class="bunker-timeline">${resolved.map(item=>`<div class="bunker-timeline-item"><span>${esc(String(item.round || 'Финал')) === 'Финал' ? 'Финал' : `Раунд ${esc(String(item.round))}`}</span><div><strong>${esc(item.title)}</strong><p>${esc(item.resolutionText)}</p></div></div>`).join('')}</div>` : ''}
-    ${(report?.details?.bunkerProblemOutcomes || []).some(item => !item.resolved) ? `<h3>Проблемы без решения</h3><div class="bunker-timeline">${report.details.bunkerProblemOutcomes.filter(item=>!item.resolved).map(item=>`<div class="bunker-timeline-item"><span>Финал</span><div><strong>${esc(item.title)}</strong><p>${esc(item.message)}</p></div></div>`).join('')}</div>` : ''}
-    ${report?.details?.bunkerSummary ? `<p class="small">${esc(report.details.bunkerSummary)}</p>` : ''}
-  </section>`;
+  const resolvedHtml = resolved.length
+    ? `<h3>Что удалось исправить</h3><div class="final-detail-list">${resolved.map(item=>`<article><strong>${esc(item.title)}</strong><p>${esc(item.resolutionText)}</p></article>`).join('')}</div>`
+    : '<p class="muted">Ни одна проблема не была автоматически устранена подходящим специалистом.</p>';
+  const unresolvedHtml = unresolved.length
+    ? `<h3>Что осталось опасным</h3><div class="final-detail-list danger-list">${unresolved.map(item=>`<article><strong>${esc(item.title)}</strong><p>Подходящего специалиста не оказалось — угроза сохранилась.</p></article>`).join('')}</div>`
+    : '<p class="muted">Критических нерешённых проблем в бункере не осталось.</p>';
+  return `<section class="panel final-detail-panel"><div class="panel-kicker">Убежище</div><h2>${esc(g.bunker.title)}</h2><p class="muted">${esc(g.bunker.desc)}</p>
+    <p>${discoveries.length ? 'По ходу партии группа находила новые детали инфраструктуры и меняла условия выживания.' : 'Инфраструктура почти не менялась по ходу партии.'}</p>
+    ${resolvedHtml}${unresolvedHtml}</section>`;
+}
+
+function renderFinalWorldChronicle(g) {
+  const reveals = g.catastropheReveals || [];
+  return `<section class="panel final-detail-panel"><div class="panel-kicker">Последние сведения</div><h2>${esc(g.catastrophe.title)}</h2><p class="muted">${esc(g.catastrophe.desc)}</p>
+    ${reveals.length ? `<div class="final-detail-list">${reveals.map(fact => `<article>${fact.history ? `<p class="discovery-history">${esc(fact.history)}</p>` : ''}<p>${esc(fact.text)}</p></article>`).join('')}</div>` : '<p class="muted">Группа не успела раскрыть дополнительные сведения о катастрофе.</p>'}
+    <p class="small">В открывшихся сведениях были учтены сценарные последствия, влияющие на оценку угроз и возможности группы.</p></section>`;
+}
+
+function renderFinal() {
+  const g = state.game;
+  const r = g.finalReport || calculateFinalReport();
+  const outcome = finalOutcome(g, r);
+  const survivors = inBunkerPlayers();
+  const resolved = g.bunkerState?.resolvedProblems || [];
+  const unresolved = g.bunkerState?.activeProblems || [];
+  const twistHtml = outcome.twists.length
+    ? `<section class="panel final-detail-panel"><h2>Истории, которые запомнятся</h2><div class="final-detail-list">${outcome.twists.map(text=>`<article><p>${esc(text)}</p></article>`).join('')}</div></section>`
+    : '';
+  const synergyText = r.details.covered >= 4 && r.details.strongCoverage >= 2
+    ? 'Команда закрыла несколько разных задач: навыки специалистов дополняли друг друга.'
+    : r.details.synergyReasons?.length
+      ? `Особенно пригодились связки: ${r.details.synergyReasons.slice(0,3).map(esc).join('; ')}.`
+      : 'У группы были сильные стороны, но не все навыки удалось соединить в единую систему.';
+  const riskText = outcome.infection?.threats?.length
+    ? `<article class="${outcome.infection.outbreak?'final-risk-danger':'final-risk-contained'}"><strong>${outcome.infection.outbreak?'Заражение вышло из-под контроля':'Опасное состояние обнаружено'}</strong><p>${esc(outcome.infection.summary)}</p></article>`
+    : '';
+  const roster = survivors.length
+    ? survivors.map(p=>`<span class="final-name">${esc(p.name)}</span>`).join('')
+    : '<span class="muted">Никому не удалось остаться в бункере.</span>';
+  APP.innerHTML = `
+    <section class="final-outcome ${outcome.survived ? 'final-outcome-survived' : 'final-outcome-lost'}" role="status" aria-live="polite">
+      <div class="phase">Итог катастрофы</div>
+      <div class="final-outcome-symbol" aria-hidden="true">${outcome.survived ? '✓' : '✕'}</div>
+      <h1>${outcome.title}</h1>
+      <p class="final-lead">${esc(outcome.lead)}</p>
+      <p class="final-support">${esc(outcome.support)}</p>
+    </section>
+    <section class="panel final-brief">
+      <div class="panel-kicker">Последняя глава</div>
+      <h2>${esc(g.catastrophe.title)}</h2>
+      <p class="muted">${esc(g.catastrophe.desc)}</p>
+      <p><strong>Убежище:</strong> ${esc(g.bunker.title)}. ${outcome.survived ? 'Оно стало домом для тех, кто сумел применить свои навыки и справиться с главными угрозами.' : 'Его стены не смогли компенсировать все опасности катастрофы и ошибки группы.'}</p>
+      <p>${esc(synergyText)}</p>
+    </section>
+    <details class="panel final-details">
+      <summary>Подробнее о судьбе группы</summary>
+      <div class="final-details-content">
+        <section class="panel final-detail-panel"><h2>Кто оказался в бункере</h2><div class="final-roster">${roster}</div></section>
+        ${riskText}
+        ${resolved.length || unresolved.length ? renderFinalBunker(g, r) : ''}
+        ${renderFinalWorldChronicle(g)}
+        ${twistHtml}
+        <section class="panel final-detail-panel"><h2>Что повлияло на исход</h2><div class="final-detail-list">${r.details.reasons.map(reason=>`<article><p>${esc(reason)}</p></article>`).join('')}</div></section>
+        <section class="panel final-detail-panel final-board-panel"><h2>Все раскрытые характеристики</h2><div class="players-board">${g.players.map(p => renderPlayerRow(p, null, true)).join('')}</div></section>
+      </div>
+    </details>
+  `;
 }
 
 function renderGame() {
@@ -2158,17 +2484,11 @@ function renderGame() {
         <h2>${esc(g.catastrophe.title)}</h2>
         <p class="muted">${esc(g.catastrophe.desc)}</p>
       </div>
-      <div class="grid two bunker-summary">
-        <div>
-          <div class="phase">Бункер</div>
-          <h2>${esc(g.bunker.title)}</h2>
-          <p class="muted">${esc(g.bunker.desc)}</p>
-        </div>
-        <div class="grid three bunker-metrics">
-          <div class="notice"><strong>${g.bunker.food}</strong><div class="small">мес. еды</div></div>
-          <div class="notice"><strong>${g.bunker.water}</strong><div class="small">мес. воды</div></div>
-          <div class="notice"><strong>${g.bunker.energy}%</strong><div class="small">энергия</div></div>
-        </div>
+      <div class="situation-summary" aria-label="Последствия катастрофы и состояние убежища">
+        <p><strong>Что означает эта катастрофа.</strong> ${esc(describeCatastrophePressure(g))}</p>
+        <p><strong>Убежище — ${esc(g.bunker.title)}.</strong> ${esc(g.bunker.desc)} ${esc(describeBunkerSituation(g).capacity)}</p>
+        <p><strong>Запасы.</strong> ${esc(describeBunkerSituation(g).supplies)}</p>
+        <p><strong>Инфраструктура.</strong> ${esc(describeBunkerSituation(g).systems)}</p>
       </div>
     </section>
     ${(g.catastropheReveals || []).length ? `<section class="panel discovery-panel"><div class="panel-kicker">Новые сведения о мире</div><h2>Что удалось выяснить</h2><div class="discovery-list">${g.catastropheReveals.map(fact => `<article class="discovery-item"><span class="discovery-round">Раунд ${fact.round}</span>${fact.history ? `<p class="discovery-history">${esc(fact.history)}</p>` : ''}<p>${esc(fact.text)}</p></article>`).join('')}</div></section>` : ''}
@@ -2238,7 +2558,7 @@ function renderPhase(g, me, current, quota, canAct, myRemaining) {
       <div class="notice success"><strong>2 минуты · живое голосование</strong><div class="small" style="margin-top:5px">Пока таймер идёт, можно обсуждать, защищаться и менять свой голос. Нераскрытые характеристики нельзя объявлять вслух. Нажатие «Завершить голосование» фиксирует результат.</div></div>
       <div class="row space" style="margin:12px 0"><span class="small">Проголосовали: <strong>${votedCount}/${eligibleCount}</strong></span>${allEligibleVoted ? '<span class="small">Все участники с правом голоса проголосовали — можно завершить раньше.</span>' : ''}</div>
       ${me && !me.eliminated ? `<div class="vote-grid">${everyone.map(p => `<label class="vote-option"><input type="radio" name="vote" value="${esc(p.id)}" ${myVote===p.id?'checked':''} onchange="uiVote('${p.id}')" /> <span>${esc(p.name)}${p.bot ? ' · бот' : ''}</span></label>`).join('')}</div>` : '<div class="notice">Вы уже выбыли из текущего состава.</div>'}
-      ${state.isHost && everyone.some(p => p.bot) ? `<div class="host-bot-votes"><h3>Решения за тестовых ботов</h3><p class="small">Выберите цель голосования для каждого бота или нажмите «Случайные голоса ботов» в панели хоста.</p>${everyone.filter(bot => bot.bot).map(bot => `<label class="host-bot-vote-row"><span>${esc(bot.name)}${g.votes?.[bot.id] ? ` · голос учтён` : ''}</span><select aria-label="За кого голосует ${esc(bot.name)}" onchange="uiBotVote('${bot.id}',this.value)"><option value="">${g.votes?.[bot.id] ? 'Изменить голос…' : 'Выберите игрока…'}</option>${everyone.filter(target => target.id !== bot.id).map(target => `<option value="${target.id}" ${g.votes?.[bot.id]===target.id?'selected':''}>${esc(target.name)}</option>`).join('')}</select></label>`).join('')}</div>` : ''}
+      ${state.isHost && everyone.some(p => p.bot) ? `<div class="host-bot-votes"><h3>Решения за тестовых ботов</h3><p class="small">Выберите цель голосования для каждого бота или нажмите «Случайные голоса ботов» в панели хоста.</p>${everyone.filter(bot => bot.bot).map(bot => `<div class="host-bot-vote-row"><span>${esc(bot.name)}${g.votes?.[bot.id] ? ` · голос учтён` : ''}</span><select aria-label="За кого голосует ${esc(bot.name)}" onchange="uiBotVote('${bot.id}',this.value)"><option value="">${g.votes?.[bot.id] ? 'Изменить голос…' : 'Выберите игрока…'}</option>${everyone.filter(target => target.id !== bot.id).map(target => `<option value="${target.id}" ${g.votes?.[bot.id]===target.id?'selected':''}>${esc(target.name)}</option>`).join('')}</select>${skipAvailable ? `<label class="host-bot-skip"><input type="checkbox" ${g.skipChoices?.[bot.id]?'checked':''} onchange="uiBotSkipChoice('${bot.id}',this.checked)" /> Пропуск</label>` : ''}</div>`).join('')}${skipAvailable ? `<button class="btn" onclick="uiAutoSkipChoiceBots()">Случайный выбор пропуска для ботов</button>` : ''}</div>` : ''}
       ${skipAvailable && me && !me.eliminated ? `<div class="vote-skip"><div><strong>Вариант первого раунда: пропуск</strong><div class="small">Если за пропуск наберётся больше половины игроков, никто не выбывает, а в следующем раунде исключаются два человека.</div></div><button class="btn ${skipChoice?'primary':''}" onclick="uiSkipChoice(${skipChoice?'false':'true'})">${skipChoice?'✓ Я за пропуск':'Я за пропуск'}</button></div>` : ''}
     </section>`;
   }
@@ -2309,56 +2629,10 @@ function hostControls(g, current) {
   else if (g.currentPhase === 'speeches') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiNextSpeech()">Следующий</button></div>`;
   else if (g.currentPhase === 'defense') controls = `<div class="row"><button class="btn" onclick="uiTimer(30)">30 сек</button><button class="btn primary" onclick="uiFinishDefense()">Дальше</button></div>`;
   else if (g.currentPhase === 'farewell') controls = `<div class="row"><button class="btn" onclick="uiTimer(15)">15 сек</button><button class="btn primary" onclick="uiFinishFarewell()">Завершить речь</button></div>`;
-  else if (g.currentPhase === 'vote') controls = `<div class="row"><button class="btn" onclick="uiTimer(120)">120 сек</button><button class="btn" onclick="uiAutoVoteBots()">Случайные голоса ботов</button><button class="btn primary" onclick="uiFinishVote()">Завершить голосование</button></div>`;
+  else if (g.currentPhase === 'vote') controls = `<div class="row"><button class="btn" onclick="uiTimer(120)">2 минуты</button><button class="btn" onclick="uiAutoVoteBots()">Случайные голоса ботов</button><button class="btn primary" onclick="uiFinishVote()">Завершить голосование</button></div>`;
   const kickable = g.players.filter(p => !p.hostPlayer && !p.eliminated);
   const kickControl = kickable.length ? `<details class="host-kick-tools"><summary>Тест: удалить игрока</summary><p class="small">В лобби игрок удаляется из списка, во время игры немедленно выбывает без прощальной речи.</p><div class="host-kick-list">${kickable.map(p => `<div class="host-kick-row"><span>${esc(p.name)}${p.bot ? ' · бот' : ''}</span><button class="btn danger btn-sm" onclick="uiKickPlayer('${p.id}')">Удалить</button></div>`).join('')}</div></details>` : '';
   return `${controls}${kickControl}`;
-}
-
-function renderFinalWorldChronicle(g) {
-  const reveals = g.catastropheReveals || [];
-  return `<section class="panel final-world-chronicle"><div class="panel-kicker">Полная картина катастрофы</div><h2>${esc(g.catastrophe.title)}</h2><p class="muted">${esc(g.catastrophe.desc)}</p>
-    ${reveals.length ? `<div class="discovery-list">${reveals.map(fact => `<article class="discovery-item"><span class="discovery-round">Раскрыто в раунде ${fact.round}</span>${fact.history ? `<p class="discovery-history">${esc(fact.history)}</p>` : ''}<p>${esc(fact.text)}</p></article>`).join('')}</div>` : '<p class="muted">Дополнительные сведения не были открыты до завершения партии.</p>'}
-    <p class="small">Сценарные факторы, открытые по ходу партии, учтены в итоговых метриках там, где это предусмотрено правилами сценария.</p></section>`;
-}
-
-function renderFinal() {
-  const g = state.game;
-  const r = g.finalReport || calculateFinalReport();
-  const survivors = inBunkerPlayers();
-  const synergyReasons = r.details.synergyReasons?.length
-    ? r.details.synergyReasons.map(x => `<div style="padding:6px 0;border-bottom:1px dashed var(--line)">• ${esc(x)}</div>`).join('')
-    : '<div class="small">Ярко выраженных дополнительных связок не обнаружено.</div>';
-  APP.innerHTML = `
-    <section class="hero"><div class="phase">финал</div><h1>${r.score}/100</h1><p>${esc(r.verdict)} · ориентировочный игровой прогноз: около ${r.years} лет устойчивой автономной жизни.</p></section>
-    <div style="height:14px"></div>
-    <div class="grid two">
-      <section class="panel"><h2>Кто в бункере</h2><div class="player-list">${survivors.map(p=>`<div class="player"><div class="dot on"></div><div><strong>${esc(p.name)}</strong><div class="small">в бункере</div></div><div></div></div>`).join('')}</div></section>
-      <section class="panel"><h2>Почему такой результат</h2>
-        ${Object.entries(r.metrics).map(([k,v])=>`<div class="metric"><span>${metricName(k)}</span><strong>${Math.round(v)}/100</strong></div>`).join('')}
-      </section>
-    </div>
-    <div style="height:14px"></div>
-    <section class="panel"><h2>Синергия состава</h2>
-      <p class="small">Синергия не складывает все бонусы напрямую. Основной вклад дают разные люди, закрывающие разные задачи; повтор одинакового навыка постепенно даёт меньше пользы.</p>
-      <div class="metric"><span>Ключевых задач закрыто</span><strong>${r.details.covered}/6</strong></div>
-      <div class="metric"><span>Задач с устойчивым покрытием</span><strong>${r.details.strongCoverage}/6</strong></div>
-      <div class="metric"><span>Разброс по участникам и задачам</span><strong>${Math.round(Math.min(100, r.metrics.synergy))}/100</strong></div>
-      <div style="height:8px"></div>
-      <div class="small"><strong>Что сработало:</strong></div>
-      <div style="margin-top:4px">${synergyReasons}</div>
-    </section>
-    <div style="height:14px"></div>
-    <section class="panel"><h2>Демографическая устойчивость</h2><p class="muted">Это условный игровой показатель для долгосрочной симуляции. Он учитывает только возрастно-половой состав группы и не заменяет медицинский или демографический прогноз.</p><div class="metric"><span>Мужчины трудоспособного возраста</span><strong>${r.details.men}</strong></div><div class="metric"><span>Женщины трудоспособного возраста</span><strong>${r.details.women}</strong></div><div class="metric"><span>Запас еды с учётом навыков</span><strong>≈ ${r.details.foodMonths} мес.</strong></div><div class="metric"><span>Запас воды с учётом навыков</span><strong>≈ ${r.details.waterMonths} мес.</strong></div></section>
-    <div style="height:14px"></div>
-    <section class="panel"><h2>Что повлияло на результат</h2><div class="small">${r.details.reasons.map(x=>`<div style="padding:6px 0;border-bottom:1px dashed var(--line)">• ${esc(x)}</div>`).join('')}</div></section>
-    <div style="height:14px"></div>
-    ${renderFinalBunker(g, r)}
-    <div style="height:14px"></div>
-    ${renderFinalWorldChronicle(g)}
-    <div style="height:14px"></div>
-    <section class="panel final-board-panel"><div class="panel-heading-row"><div><div class="panel-kicker">Полное раскрытие</div><h2>Все характеристики выживших</h2></div><span class="small">Итоговое игровое поле</span></div><div class="players-board">${survivors.map(p => renderPlayerRow(p, null, true)).join('')}</div></section>
-  `;
 }
 
 function metricName(k) { return ({ resource:'Ресурсы', systems:'Техника и энергия', medicine:'Медицина', teamwork:'Командная работа', food:'Производство пищи', environment:'Среда и автономность', demographic:'Демографическая устойчивость', physical:'Физическая устойчивость', synergy:'Синергия состава' })[k] || k; }
@@ -2398,6 +2672,8 @@ window.uiFillBots = () => fillTestBots();
 window.uiClearBots = () => removeTestBots();
 window.uiBotVote = (botId, targetId) => { if (targetId) hostBotVote(botId, targetId); };
 window.uiAutoVoteBots = () => autoVoteForBots();
+window.uiBotSkipChoice = (botId, enabled) => hostBotSkipChoice(botId, enabled);
+window.uiAutoSkipChoiceBots = () => autoSkipChoiceForBots();
 window.uiHostFinishTurn = () => hostForceFinishTurn();
 window.uiKickPlayer = playerId => kickPlayer(playerId);
 window.uiToggleWakeLock = async () => {
